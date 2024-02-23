@@ -31,8 +31,8 @@ std::optional<Chord> ChordParser::operator()(const char* name) const
     Chord chord;
     chord.required=7;
 
-    chord.notes[0]=Note(result[1].str());
-    chord.bass=Note(result[5].str());
+    chord.notes[0]=NoteClass(result[1].str());
+    chord.bass=NoteClass(result[5].str());
 
     if (result[4]=="maj7") {
         chord.quality=Chord::Quality::Major;

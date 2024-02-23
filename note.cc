@@ -3,7 +3,7 @@
 
 const static int8_t notevalues[]={ 0, 2, 4, 5, 7, 9, 11 };
 
-Note::Note(const std::string& name)
+NoteClass::NoteClass(const std::string& name)
 {
     if (name.size()>2)
         throw std::range_error("invalid note");
@@ -56,7 +56,7 @@ Note::Note(const std::string& name)
 }
 
 
-std::string Note::get_name() const
+std::string NoteClass::get_name() const
 {
     const static char names[]="CDEFGAB";
 
@@ -80,12 +80,12 @@ std::string Note::get_name() const
 }
 
 
-Note Note::operator+(const Interval& iv) const
+NoteClass NoteClass::operator+(const Interval& iv) const
 {
     if (base<0)
         return *this;
 
-    Note result;
+    NoteClass result;
 
     result.base=base + iv.notes;
     if (result.base>=7) result.base-=7;
@@ -97,8 +97,29 @@ Note Note::operator+(const Interval& iv) const
 }
 
 
-
-bool operator==(const Note& lhs, const MidiNote& rhs)
+std::string Note::get_name() const
 {
-    return lhs.value==rhs.value%12;
+    const static char names[]="CDEFGAB";
+
+    std::string name(1, names[base]);
+
+    int8_t tmp=value%12 - notevalues[base];
+    if (tmp<-6) tmp+=12;
+    if (tmp> 6) tmp-=12;
+
+    if (!tmp) name+='-';
+
+    while (tmp<0) {
+        name+='b';
+        tmp++;
+    }
+
+    while (tmp>0) {
+        name+='#';
+        tmp--;
+    }
+
+    name+='0' + (value/12);
+
+    return name;
 }

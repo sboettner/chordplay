@@ -14,8 +14,8 @@ struct Chord {
     Quality     quality;
     uint8_t     required;
 
-    Note        bass;
-    Note        notes[6];
+    NoteClass   bass;
+    NoteClass   notes[6];
 
     std::string get_name() const;
 };

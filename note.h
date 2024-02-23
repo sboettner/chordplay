@@ -5,7 +5,7 @@
 #include <string>
 
 class alignas(2) Interval {
-    friend class Note;
+    friend class NoteClass;
 
     int8_t  notes;
     int8_t  semitones;
@@ -15,21 +15,23 @@ public:
 };
 
 
-class MidiNote;
+class Note;
 
-class alignas(2) Note {
-    friend class MidiNote;
+class alignas(2) NoteClass {
+    friend class Note;
 
     int8_t  base;
     int8_t  value;
 
+    NoteClass(int8_t base, int8_t value):base(base), value(value) {}
+
 public:
-    Note()
+    NoteClass()
     {
         base=value=-1;
     }
 
-    explicit Note(const std::string&);
+    explicit NoteClass(const std::string&);
 
     operator bool() const
     {
@@ -38,29 +40,39 @@ public:
 
     std::string get_name() const;
 
-    Note operator+(const Interval&) const;
+    NoteClass operator+(const Interval&) const;
 
-    friend bool operator==(const Note& lhs, const MidiNote& rhs);
+    bool operator==(const NoteClass& rhs) const
+    {
+        return base==rhs.base && value==rhs.value;
+    }
 };
 
 
-class MidiNote {
-    uint8_t value;
+class Note {
+    int8_t  base;
+    int8_t  value;
 
 public:
-    MidiNote() {}
+    Note() {}
 
-    MidiNote(const Note& note, uint8_t octave)
+    Note(const NoteClass& note, int8_t octave)
     {
+        base=note.base;
         value=note.value + octave*12;
     }
 
-    operator uint8_t() const
+    operator NoteClass() const
+    {
+        return NoteClass(base, value%12);
+    }
+
+    operator int8_t() const
     {
         return value;
     }
 
-    friend bool operator==(const Note& lhs, const MidiNote& rhs);
+    std::string get_name() const;
 };
 
 #endif

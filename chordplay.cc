@@ -39,20 +39,18 @@ public:
 
 
 struct Voicing {
-    MidiNote notes[5];
+    Note notes[5];
 };
 
 
 void print_voicing(const Voicing& voicing)
 {
-    const char* notenames[]={ "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "Bb", "B-" };
+    const char* colorcodes[5]={ "\e[31;1m", "\e[32;1m", "\e[32;1m", "\e[32;1m", "\e[36;1m" };
 
-    printf("\e[31;1m%s%d    \e[32;1m%s%d  %s%d  %s%d   \e[36;1m%s%d\e[0m\n",
-        notenames[voicing.notes[0]%12], voicing.notes[0]/12,
-        notenames[voicing.notes[1]%12], voicing.notes[1]/12,
-        notenames[voicing.notes[2]%12], voicing.notes[2]/12,
-        notenames[voicing.notes[3]%12], voicing.notes[3]/12,
-        notenames[voicing.notes[4]%12], voicing.notes[4]/12);
+    for (int i=0;i<5;i++)
+        std::cout << colorcodes[i] << voicing.notes[i].get_name() << '\t';
+
+    std::cout << "\e[0m" << std::endl;
 }
 
 
@@ -82,7 +80,7 @@ std::vector<Voicing> enumerate_voicings(const Chord& chord)
 {
     std::vector<Voicing> result;
 
-    std::vector<MidiNote> noteset[5];
+    std::vector<Note> noteset[5];
 
     if (chord.bass)
         noteset[0].emplace_back(chord.bass, 3);
@@ -237,7 +235,7 @@ int main(int argc, const char* argv[])
     for (const Chord& ch: chords) {
         std::cout << ch.get_name() << ':' << std::endl;
 
-        for (const Note& n: ch.notes)
+        for (const NoteClass& n: ch.notes)
             if (n)
                 std::cout << '\t' << n.get_name() << std::endl;
     }
