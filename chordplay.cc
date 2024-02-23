@@ -135,6 +135,16 @@ int compute_voice_leading_cost(const Voicing& v1, const Voicing& v2)
         cost+=v*v;
     }
 
+    for (int i=1;i<5;i++) {
+        for (int j=0;j<i;j++) {
+            int v=v1.notes[i] - v1.notes[j];
+            if (v%12!=0 && v%12!=7) continue;
+
+            if (v2.notes[i]==v2.notes[j]+v)
+                cost+=1000; // forbidden parallel
+        }
+    }
+
     return cost;
 }
 
@@ -247,7 +257,7 @@ int main(int argc, const char* argv[])
         for (int i=0;i<numports;i++)
             printf("%d: %s\n", i, rtmidiout.getPortName(i).c_str());
 
-        rtmidiout.openPort(4);
+        rtmidiout.openPort(1);
 
         MidiOut midiout(rtmidiout);
         midiout.program_change(0, 43);
