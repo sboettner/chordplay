@@ -67,12 +67,22 @@ public:
         return NoteClass(base, value%12);
     }
 
-    operator int8_t() const
+    std::string get_name() const;
+
+    uint8_t get_midi_note() const
     {
-        return value;
+        return (uint8_t) value;
     }
 
-    std::string get_name() const;
+    bool operator<(const Note& rhs) const
+    {
+        return value<rhs.value;
+    }
+
+    bool operator>=(const Note& rhs) const
+    {
+        return value>=rhs.value;
+    }
 };
 
 #endif

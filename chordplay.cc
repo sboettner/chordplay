@@ -18,15 +18,15 @@ class MidiOut {
 public:
     MidiOut(RtMidiOut& rtmidiout):rtmidiout(rtmidiout) {}
 
-    void note_off(int ch, int note, int vel)
+    void note_off(int ch, Note note, int vel)
     {
-        const uint8_t msg[3]={ uint8_t(0x80|ch), uint8_t(note), uint8_t(vel) };
+        const uint8_t msg[3]={ uint8_t(0x80|ch), note.get_midi_note(), uint8_t(vel) };
         rtmidiout.sendMessage(msg, sizeof(msg));
     }
 
-    void note_on(int ch, int note, int vel)
+    void note_on(int ch, Note note, int vel)
     {
-        const uint8_t msg[3]={ uint8_t(0x90|ch), uint8_t(note), uint8_t(vel) };
+        const uint8_t msg[3]={ uint8_t(0x90|ch), note.get_midi_note(), uint8_t(vel) };
         rtmidiout.sendMessage(msg, sizeof(msg));
     }
 
@@ -129,16 +129,16 @@ int compute_voice_leading_cost(const Voicing& v1, const Voicing& v2)
     int cost=0;
 
     for (int i=0;i<5;i++) {
-        int v=v1.notes[i] - v2.notes[i];
+        int v=v1.notes[i].get_midi_note() - v2.notes[i].get_midi_note();
         cost+=v*v;
     }
 
     for (int i=1;i<5;i++) {
         for (int j=0;j<i;j++) {
-            int v=v1.notes[i] - v1.notes[j];
+            int v=v1.notes[i].get_midi_note() - v1.notes[j].get_midi_note();
             if (v%12!=0 && v%12!=7) continue;
 
-            if (v2.notes[i]==v2.notes[j]+v)
+            if (v2.notes[i].get_midi_note()==v2.notes[j].get_midi_note()+v)
                 cost+=1000; // forbidden parallel
         }
     }
@@ -241,11 +241,6 @@ int main(int argc, const char* argv[])
     }
 
     std::vector<Voicing> voiceleading=compute_voice_leading(chords);
-
-    for (auto& v: voiceleading)
-        print_voicing(v);
-
-    //return 0;
 
     try {
         RtMidiOut rtmidiout;
