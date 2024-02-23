@@ -18,6 +18,8 @@ struct Chord {
     NoteClass   notes[6];
 
     std::string get_name() const;
+
+    bool append(const NoteClass&);
 };
 
 

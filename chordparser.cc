@@ -1,9 +1,10 @@
+#include <sstream>
 #include <regex>
 #include "chordparser.h"
 
 
 struct ChordParser::Internal {
-    std::regex  regex { "([A-G][#b]?)(?:(m)?(6|7|9)?|(maj7|sus2|sus4))(?:/([A-G][#b]?))?" };
+    std::regex  regex { "([A-G][#b]?)(?:(m)?(6|7|9)?|(maj7|sus2|sus4))((?:\\+[0-9]+)*)(?:/([A-G][#b]?))?" };
 };
 
 
@@ -25,14 +26,11 @@ std::optional<Chord> ChordParser::operator()(const char* name) const
     if (!std::regex_match(name, result, internal->regex))
         return std::nullopt;
 
-    for (auto m: result)
-        printf("  '%s'\n", m.str().c_str());
-
     Chord chord;
     chord.required=7;
 
     chord.notes[0]=NoteClass(result[1].str());
-    chord.bass=NoteClass(result[5].str());
+    chord.bass=NoteClass(result[6].str());
 
     if (result[4]=="maj7") {
         chord.quality=Chord::Quality::Major;
@@ -75,6 +73,23 @@ std::optional<Chord> ChordParser::operator()(const char* name) const
         chord.notes[3]=chord.notes[0] + Interval(6, 10);
         chord.notes[4]=chord.notes[0] + Interval(1, 2);
     }
+
+    // parse tensions
+    std::stringstream tensions(result[5].str());
+    std::string token;
+    while (getline(tensions, token, '+'))
+        if (token.size()) {
+            int step=stoi(token) - 1;
+            if (step<0)
+                return std::nullopt;
+            
+            int octaves=step/7;
+            step%=7;
+
+            const static int8_t semitones[]={ 0, 2, 4, 5, 7, 9, 11 };
+            if (!chord.append(chord.notes[0] + Interval(step, semitones[step] + octaves*12)))
+                return std::nullopt;
+        }
 
     return chord;
 }
