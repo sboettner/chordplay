@@ -253,11 +253,25 @@ int main(int argc, const char* argv[])
         RtMidiOut rtmidiout;
 
         const int numports=rtmidiout.getPortCount();
-        printf("%d midi ports:\n", numports);
-        for (int i=0;i<numports;i++)
-            printf("%d: %s\n", i, rtmidiout.getPortName(i).c_str());
+        int midiport=-1;
 
-        rtmidiout.openPort(1);
+        for (int i=0;i<numports;i++) {
+            std::string portname=rtmidiout.getPortName(i).c_str();
+            std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
+            if (portname.find("synth")!=std::string::npos) {
+                midiport=i;
+                break;
+            }
+        }
+
+        if (midiport<0) {
+            std::cerr << "Error: No MIDI synth found" << std::endl;
+            return 1;
+        }
+
+        std::cout << "Using MIDI port: " << rtmidiout.getPortName(midiport).c_str() << std::endl;
+
+        rtmidiout.openPort(midiport);
 
         MidiOut midiout(rtmidiout);
         midiout.program_change(0, 43);
