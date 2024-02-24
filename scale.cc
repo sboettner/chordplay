@@ -13,6 +13,21 @@ Scale::Scale()
 }
 
 
+Scale::Scale(const Scale& basescale, const Chord& chord)
+{
+    for (int i=0;i<7;i++) {
+        notes[i]=basescale.notes[i];
+
+        for (int j=0;j<6 && chord.notes[j];j++) {
+            if (notes[i].base==chord.notes[j].base) {
+                notes[i]=chord.notes[j];
+                break;
+            }
+        }
+    }
+}
+
+
 Note Scale::project(const Note& in_note) const
 {
     int note=in_note.base;
