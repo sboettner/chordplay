@@ -29,17 +29,18 @@ class Note;
 
 class alignas(2) NoteClass {
     friend class Note;
+    friend class Scale;
 
     int8_t  base;
     int8_t  value;
-
-    NoteClass(int8_t base, int8_t value):base(base), value(value) {}
 
 public:
     NoteClass()
     {
         base=value=-1;
     }
+
+    NoteClass(int8_t base, int8_t value):base(base), value(value) {}
 
     explicit NoteClass(const std::string&);
 
@@ -60,6 +61,8 @@ public:
 
 
 class Note {
+    friend class Scale;
+
     int8_t  base;
     int8_t  value;
 
