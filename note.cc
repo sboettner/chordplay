@@ -123,3 +123,37 @@ std::string Note::get_name() const
 
     return name;
 }
+
+
+Note Note::operator+(const Interval& iv) const
+{
+    int8_t result_base=(base + iv.get_notes()) % 7;
+    if (result_base<0) result_base+=7;
+    return Note(result_base, value + iv.get_semitones());
+}
+
+
+Interval Note::operator-(const Note& rhs) const
+{
+    int steps=base - rhs.base;
+    if (steps<0) steps+=7;
+
+    int semitones=value - rhs.value;
+
+    int expected=notevalues[steps];
+
+    for (;;) {
+        if (expected-semitones>6) {
+            expected-=12;
+            steps-=7;
+        }
+        else if (semitones-expected>6) {
+            expected+=12;
+            steps+=7;
+        }
+        else
+            break;
+    }
+
+    return Interval(steps, semitones);
+}

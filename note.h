@@ -12,6 +12,16 @@ class alignas(2) Interval {
 
 public:
     Interval(int8_t notes, int8_t semitones):notes(notes), semitones(semitones) {}
+
+    int get_notes() const
+    {
+        return notes;
+    }
+
+    int get_semitones() const
+    {
+        return semitones;
+    }
 };
 
 
@@ -53,6 +63,8 @@ class Note {
     int8_t  base;
     int8_t  value;
 
+    Note(int8_t base, int8_t value):base(base), value(value) {}
+
 public:
     Note() {}
 
@@ -73,6 +85,9 @@ public:
     {
         return (uint8_t) value;
     }
+
+    Note operator+(const Interval&) const;
+    Interval operator-(const Note& rhs) const;
 
     bool operator<(const Note& rhs) const
     {
