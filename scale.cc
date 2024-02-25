@@ -3,45 +3,67 @@
 Scale::Scale()
 {
     // C major
-    notes[0]=NoteClass(0, 0);
-    notes[1]=NoteClass(1, 2);
-    notes[2]=NoteClass(2, 4);
-    notes[3]=NoteClass(3, 5);
-    notes[4]=NoteClass(4, 7);
-    notes[5]=NoteClass(5, 9);
-    notes[6]=NoteClass(6, 11);
+    rootname=NoteName::C;
+    notes[0]=0;
+    notes[1]=2;
+    notes[2]=4;
+    notes[3]=5;
+    notes[4]=7;
+    notes[5]=9;
+    notes[6]=11;
 }
 
 
-Scale::Scale(const Scale& basescale, const Chord& chord)
+Scale::Scale(const Chord& chord)
 {
-    for (int i=0;i<7;i++) {
-        notes[i]=basescale.notes[i];
+    rootname=NoteName(chord.notes[0].base);
 
-        for (int j=0;j<6 && chord.notes[j];j++) {
-            if (notes[i].base==chord.notes[j].base) {
-                notes[i]=chord.notes[j];
-                break;
-            }
-        }
+    const static int8_t semitones_major[]={ 0, 2, 4, 5, 7, 9, 11 };
+    const static int8_t semitones_minor[]={ 0, 2, 3, 5, 7, 8, 10 };
+
+    const int8_t* semitones=chord.quality==Chord::Quality::Minor ? semitones_minor : semitones_major;
+
+    for (int i=0;i<7;i++) {
+        NoteName name=NoteName((int8_t(rootname) + i) % 7);
+
+        notes[i]=chord[name].value;
+        if (notes[i]<0)
+            notes[i]=notes[0] + semitones[i];
+        else if (i && notes[i]<notes[i-1])
+            notes[i]+=12;
     }
 }
 
 
-Note Scale::project(const Note& in_note) const
+Note Scale::operator()(int8_t degree) const
 {
-    int note=in_note.base;
-    int value=in_note.value;
+    int8_t octave=degree/7;
+    degree%=7;
 
-    for (int i=0;i<7;i++) {
-        if (notes[i].base==note) {
-            int deviation=(notes[i].value - value) % 12;
-            if (deviation<-6) deviation+=12;
-            if (deviation> 6) deviation-=12;
-            value+=deviation;
-            break;
-        }
+    if (degree<0) {
+        degree+=7;
+        octave--;
     }
 
-    return Note(note, value);
+    return Note((int8_t(rootname)+degree)%7, notes[degree]+octave*12);
+}
+
+
+int8_t Scale::to_scale(const Note& note) const
+{
+    int8_t degree=note.base - int8_t(rootname);
+    if (degree<0) degree+=7;
+
+    int8_t offset=note.value - notes[degree];
+    while (offset<-6) {
+        offset+=12;
+        degree-=7;
+    }
+
+    while (offset>6) {
+        offset-=12;
+        degree+=7;
+    }
+
+    return degree;
 }

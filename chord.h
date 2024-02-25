@@ -20,6 +20,8 @@ struct Chord {
     std::string get_name() const;
 
     bool append(const NoteClass&);
+
+    NoteClass operator[](NoteName) const;
 };
 
 

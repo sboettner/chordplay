@@ -4,13 +4,17 @@
 #include "chord.h"
 
 class Scale {
-    NoteClass   notes[7];
+public:
+    NoteName    rootname;
+    int8_t      notes[7];
 
 public:
     Scale();
-    Scale(const Scale&, const Chord&);
+    Scale(const Chord&);
 
-    Note project(const Note&) const;
+    Note operator()(int8_t) const;
+
+    int8_t to_scale(const Note&) const;
 };
 
 #endif

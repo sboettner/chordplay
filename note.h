@@ -4,6 +4,18 @@
 #include <cstdint>
 #include <string>
 
+enum class NoteName:int8_t {
+    Invalid=-1,
+    C=0,
+    D=1,
+    E=2,
+    F=3,
+    G=4,
+    A=5,
+    B=6
+};
+
+
 class alignas(2) Interval {
     friend class NoteClass;
 
@@ -52,6 +64,11 @@ public:
     std::string get_name() const;
 
     NoteClass operator+(const Interval&) const;
+
+    bool operator==(NoteName name) const
+    {
+        return base==(int8_t) name;
+    }
 
     bool operator==(const NoteClass& rhs) const
     {

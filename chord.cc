@@ -26,3 +26,13 @@ bool Chord::append(const NoteClass& note)
 
     return false;
 }
+
+
+NoteClass Chord::operator[](NoteName name) const
+{
+    for (int i=0;i<6 && notes[i];i++)
+        if (notes[i]==name)
+            return notes[i];
+
+    return NoteClass();
+}
