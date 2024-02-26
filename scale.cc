@@ -45,13 +45,16 @@ Note Scale::operator()(int8_t degree) const
         octave--;
     }
 
-    return Note((int8_t(rootname)+degree)%7, notes[degree]+octave*12);
+    int8_t notename=int8_t(rootname) + degree;
+    if (notename>6) notename-=7;
+
+    return Note(NoteName(notename), notes[degree]+octave*12);
 }
 
 
 int8_t Scale::to_scale(const Note& note) const
 {
-    int8_t degree=note.base - int8_t(rootname);
+    int8_t degree=int8_t(note.base) - int8_t(rootname);
     if (degree<0) degree+=7;
 
     int8_t offset=note.value - notes[degree];

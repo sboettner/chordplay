@@ -43,22 +43,23 @@ class alignas(2) NoteClass {
     friend class Note;
     friend class Scale;
 
-    int8_t  base;
-    int8_t  value;
+    NoteName    base;
+    int8_t      value;
 
 public:
     NoteClass()
     {
-        base=value=-1;
+        base=NoteName::Invalid;
+        value=-1;
     }
 
-    NoteClass(int8_t base, int8_t value):base(base), value(value) {}
+    NoteClass(NoteName base, int8_t value):base(base), value(value) {}
 
     explicit NoteClass(const std::string&);
 
     operator bool() const
     {
-        return base>=0;
+        return base>NoteName::Invalid;
     }
 
     std::string get_name() const;
@@ -67,7 +68,7 @@ public:
 
     bool operator==(NoteName name) const
     {
-        return base==(int8_t) name;
+        return base==name;
     }
 
     bool operator==(const NoteClass& rhs) const
@@ -80,10 +81,10 @@ public:
 class Note {
     friend class Scale;
 
-    int8_t  base;
-    int8_t  value;
+    NoteName    base;
+    int8_t      value;
 
-    Note(int8_t base, int8_t value):base(base), value(value) {}
+    Note(NoteName base, int8_t value):base(base), value(value) {}
 
 public:
     Note() {}

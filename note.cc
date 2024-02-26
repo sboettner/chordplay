@@ -2,6 +2,7 @@
 #include "note.h"
 
 const static int8_t notevalues[]={ 0, 2, 4, 5, 7, 9, 11 };
+const static char notenames[]="CDEFGAB";
 
 NoteClass::NoteClass(const std::string& name)
 {
@@ -9,37 +10,38 @@ NoteClass::NoteClass(const std::string& name)
         throw std::range_error("invalid note");
 
     if (!name.size()) {
-        base=value=-1;
+        base=NoteName::Invalid;
+        value=-1;
         return;
     }
 
     switch (name[0]) {
     case 'C':
-        base=0;
+        base=NoteName::C;
         break;
     case 'D':
-        base=1;
+        base=NoteName::D;
         break;
     case 'E':
-        base=2;
+        base=NoteName::E;
         break;
     case 'F':
-        base=3;
+        base=NoteName::F;
         break;
     case 'G':
-        base=4;
+        base=NoteName::G;
         break;
     case 'A':
-        base=5;
+        base=NoteName::A;
         break;
     case 'B':
-        base=6;
+        base=NoteName::B;
         break;
     default:
         throw std::range_error("invalid note");
     }
 
-    value=notevalues[base];
+    value=notevalues[(int8_t) base];
 
     if (name.size()<2) return;
 
@@ -58,11 +60,9 @@ NoteClass::NoteClass(const std::string& name)
 
 std::string NoteClass::get_name() const
 {
-    const static char names[]="CDEFGAB";
+    std::string name(1, notenames[(int8_t) base]);
 
-    std::string name(1, names[base]);
-
-    int8_t tmp=value - notevalues[base];
+    int8_t tmp=value - notevalues[(int8_t) base];
     if (tmp<-6) tmp+=12;
     if (tmp> 6) tmp-=12;
 
@@ -82,14 +82,16 @@ std::string NoteClass::get_name() const
 
 NoteClass NoteClass::operator+(const Interval& iv) const
 {
-    if (base<0)
+    if (base<=NoteName::Invalid)
         return *this;
 
     NoteClass result;
 
-    result.base=base + iv.notes;
-    if (result.base>=7) result.base-=7;
-
+    int8_t tmp=int8_t(base) + iv.notes;
+    while (tmp<0) tmp+=7;
+    while (tmp>6) tmp-=7;
+    
+    result.base=NoteName(tmp);
     result.value=value + iv.semitones;
     if (result.value>=12) result.value-=12;
 
@@ -99,11 +101,9 @@ NoteClass NoteClass::operator+(const Interval& iv) const
 
 std::string Note::get_name() const
 {
-    const static char names[]="CDEFGAB";
+    std::string name(1, notenames[(int8_t) base]);
 
-    std::string name(1, names[base]);
-
-    int8_t tmp=value%12 - notevalues[base];
+    int8_t tmp=value%12 - notevalues[(int8_t) base];
     if (tmp<-6) tmp+=12;
     if (tmp> 6) tmp-=12;
 
@@ -127,15 +127,16 @@ std::string Note::get_name() const
 
 Note Note::operator+(const Interval& iv) const
 {
-    int8_t result_base=(base + iv.get_notes()) % 7;
+    int8_t result_base=(int8_t(base) + iv.get_notes()) % 7;
     if (result_base<0) result_base+=7;
-    return Note(result_base, value + iv.get_semitones());
+
+    return Note(NoteName(result_base), value + iv.get_semitones());
 }
 
 
 Interval Note::operator-(const Note& rhs) const
 {
-    int steps=base - rhs.base;
+    int steps=int8_t(base) - int8_t(rhs.base);
     if (steps<0) steps+=7;
 
     int semitones=value - rhs.value;
