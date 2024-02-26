@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <math.h>
 #include <popt.h>
 #include <RtMidi.h>
 #include "chordparser.h"
+#include "scale.h"
 
 poptOption option_table[]={
     POPT_AUTOHELP
@@ -59,10 +61,10 @@ void play_voicing(MidiOut& midiout, const Voicing& voicing)
     print_voicing(voicing);
 
     midiout.note_on(0, voicing.notes[0], 64);
-    midiout.note_on(1, voicing.notes[1], 64);
-    midiout.note_on(1, voicing.notes[2], 64);
-    midiout.note_on(1, voicing.notes[3], 64);
-    midiout.note_on(2, voicing.notes[4], 64);
+    midiout.note_on(1, voicing.notes[1], 48);
+    midiout.note_on(1, voicing.notes[2], 48);
+    midiout.note_on(1, voicing.notes[3], 48);
+    midiout.note_on(2, voicing.notes[4], 32);
 }
 
 
@@ -192,8 +194,6 @@ std::vector<Voicing> compute_voice_leading(const std::vector<Chord>& chords)
         }
     }
 
-    printf("voice leading cost=%d\n", bestcost);
-
     int j=best;
 
     std::vector<Voicing> result;
@@ -205,6 +205,107 @@ std::vector<Voicing> compute_voice_leading(const std::vector<Chord>& chords)
 
     std::reverse(result.begin(), result.end());
     return result;
+}
+
+
+std::vector<Note> improvise_melody(const std::vector<Chord>& chords)
+{
+    std::vector<Note> melody;
+    std::vector<std::vector<Note>> noteset;
+
+    const int n=chords.size()*2 - 1;
+
+    for (int i=0;i<n;i++) {
+        melody.emplace_back(chords[i/2].notes[0], 5);
+
+        std::vector<Note> notes;
+        for (int j=0;j<6 && chords[i/2].notes[j];j++) {
+            notes.emplace_back(chords[i/2].notes[j], 4);
+            notes.emplace_back(chords[i/2].notes[j], 5);
+            notes.emplace_back(chords[i/2].notes[j], 6);
+        }
+
+        noteset.push_back(std::move(notes));
+    }
+
+    struct NoteCandidate {
+        Note    note;
+        float   cumul;
+    };
+
+    srand(time(nullptr));
+
+    for (int pass=0;pass<10;pass++) {
+        for (int i=1;i+1<n;i++) {
+            std::vector<NoteCandidate> candidates;
+            float cumul=0.0f;
+
+            for (const Note& note: noteset[i]) {
+                auto Pr=[](int d) { return expf(-0.75f*abs(d))*abs(d); };
+
+                float prob=Pr(note.get_midi_note() - melody[i-1].get_midi_note()) * Pr(note.get_midi_note() - melody[i+1].get_midi_note());
+                printf("%s %s %s: %f (%f)\n", melody[i-1].get_name().c_str(), note.get_name().c_str(), melody[i+1].get_name().c_str(), prob, cumul);
+
+                NoteCandidate nc;
+                nc.note=note;
+                nc.cumul=cumul;
+                cumul+=prob;
+
+                candidates.push_back(nc);
+            }
+
+            float v=cumul * ldexpf(rand()&0xfffff, -20);
+            int c=0;
+            while (c+1<candidates.size() && candidates[c+1].cumul<=v) c++;
+
+            printf("total=%f  v=%f  c=%d\n", cumul, v, c);
+
+            melody[i]=candidates[c].note;
+        }
+    }
+
+    return melody;
+}
+
+
+std::vector<Note> improvise_passing_notes(const std::vector<Note>& in_melody, const std::vector<Chord>& chords)
+{
+    std::vector<Note> melody;
+
+    for (int i=0;i+1<in_melody.size();i++) {
+        melody.push_back(in_melody[i]);
+
+        Scale chordscale(chords[i/2]);
+
+        int8_t prev=chordscale.to_scale(in_melody[i]);
+        int8_t next=chordscale.to_scale(in_melody[i+1]);
+
+        switch (next-prev) {
+        case -3:
+        case -2:
+            melody.push_back(chordscale(prev-1));
+            break;
+        case -4:
+        case -1:
+            melody.push_back(chordscale(prev-2));
+            break;
+        case 1:
+        case 4:
+            melody.push_back(chordscale(prev+2));
+            break;
+        case 0:
+        case 2:
+        case 3:
+            melody.push_back(chordscale(prev+1));
+            break;
+        default:
+            melody.push_back(in_melody[i]);
+        }
+    }
+
+    melody.push_back(in_melody.back());
+
+    return melody;
 }
 
 
@@ -232,15 +333,19 @@ int main(int argc, const char* argv[])
         return 1;
     }
 
-    for (const Chord& ch: chords) {
-        std::cout << ch.get_name() << ':' << std::endl;
-
-        for (const NoteClass& n: ch.notes)
-            if (n)
-                std::cout << '\t' << n.get_name() << std::endl;
-    }
+    const Chord& ch=chords[0];
+    Scale scale(ch);
 
     std::vector<Voicing> voiceleading=compute_voice_leading(chords);
+
+    for (auto& v: voiceleading)
+        print_voicing(v);
+
+    std::vector<Note> melody=improvise_melody(chords);
+    melody=improvise_passing_notes(melody, chords);
+
+    for (int i=0;i<melody.size();i++)
+        std::cout << (i&1 ? "\e[0m" : "\e[1m") << melody[i].get_name() << "\e[0m" << std::endl;
 
     try {
         RtMidiOut rtmidiout;
@@ -270,12 +375,22 @@ int main(int argc, const char* argv[])
         midiout.program_change(0, 43);
         midiout.program_change(1, 42);
         midiout.program_change(2, 41);
+        midiout.program_change(3, 72);
 
-        for (auto& v: voiceleading) {
-            play_voicing(midiout, v);
-            sleep(2);
-            stop_voicing(midiout, v);
+        for (int i=0;i<melody.size();i++) {
+            if (!(i&3))
+                play_voicing(midiout, voiceleading[i/4]);
+
+            midiout.note_on(3, melody[i], 96);
+            usleep(500000);
+            midiout.note_off(3, melody[i], 96);
+
+            if ((i&3)==3)
+                stop_voicing(midiout, voiceleading[i/4]);
         }
+
+        sleep(1);
+        stop_voicing(midiout, voiceleading[voiceleading.size()-1]);
     }
     catch (const RtMidiError& err) {
         err.printMessage();
