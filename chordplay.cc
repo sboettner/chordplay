@@ -20,15 +20,15 @@ class MidiOut {
 public:
     MidiOut(RtMidiOut& rtmidiout):rtmidiout(rtmidiout) {}
 
-    void note_off(int ch, Note note, int vel)
+    void note_off(int ch, int note, int vel)
     {
-        const uint8_t msg[3]={ uint8_t(0x80|ch), note.get_midi_note(), uint8_t(vel) };
+        const uint8_t msg[3]={ uint8_t(0x80|ch), uint8_t(note), uint8_t(vel) };
         rtmidiout.sendMessage(msg, sizeof(msg));
     }
 
-    void note_on(int ch, Note note, int vel)
+    void note_on(int ch, int note, int vel)
     {
-        const uint8_t msg[3]={ uint8_t(0x90|ch), note.get_midi_note(), uint8_t(vel) };
+        const uint8_t msg[3]={ uint8_t(0x90|ch), uint8_t(note), uint8_t(vel) };
         rtmidiout.sendMessage(msg, sizeof(msg));
     }
 
@@ -39,6 +39,80 @@ public:
     }
 };
 
+
+class Sequencer {
+    struct Event {
+        float   timestamp;
+        int8_t  voice;
+        int8_t  note;
+        int8_t  vel;
+    };
+
+    std::vector<Event>  events;
+
+    const int8_t voicechannel[8] { 0, 1, 1, 1, 2, 3, 4, 5 };
+
+public:
+    void sequence_note(int voice, float timestamp, const Note& note, int vel);
+    void sequence_pause(int voice, float timestamp);
+
+    void play(MidiOut&);
+};
+
+
+void Sequencer::sequence_note(int voice, float timestamp, const Note& note, int vel)
+{
+    Event event;
+
+    event.timestamp=timestamp;
+    event.voice=voice;
+    event.note=note.get_midi_note();
+    event.vel=vel;
+
+    events.push_back(event);
+}
+
+
+void Sequencer::sequence_pause(int voice, float timestamp)
+{
+    Event event;
+
+    event.timestamp=timestamp;
+    event.voice=voice;
+    event.note=-1;
+    event.vel=0;
+
+    events.push_back(event);
+}
+
+
+void Sequencer::play(MidiOut& midiout)
+{
+    std::sort(events.begin(), events.end(), [](const Event& lhs, const Event& rhs) { return lhs.timestamp<rhs.timestamp; });
+
+    int8_t playing[8] { -1, -1, -1, -1, -1, -1, -1, -1};
+    float curtime=0.0f;
+
+    for (auto& ev: events) {
+        float delay=ev.timestamp - curtime;
+        curtime=ev.timestamp;
+
+        if (delay>0)
+            usleep(lrintf(delay*800000));
+        
+        if (playing[ev.voice]>=0)
+            midiout.note_off(voicechannel[ev.voice], playing[ev.voice], 64);
+
+        if (ev.note>=0)
+            midiout.note_on(voicechannel[ev.voice], ev.note, ev.vel);
+
+        playing[ev.voice]=ev.note;
+    }
+
+    for (int i=0;i<8;i++)
+        if (playing[i]>=0)
+            midiout.note_off(voicechannel[i], playing[i], 64);
+}
 
 struct Voicing {
     Note notes[5];
@@ -54,29 +128,6 @@ void print_voicing(const Voicing& voicing)
 
     std::cout << "\e[0m" << std::endl;
 }
-
-
-void play_voicing(MidiOut& midiout, const Voicing& voicing)
-{
-    print_voicing(voicing);
-
-    midiout.note_on(0, voicing.notes[0], 64);
-    midiout.note_on(1, voicing.notes[1], 48);
-    midiout.note_on(1, voicing.notes[2], 48);
-    midiout.note_on(1, voicing.notes[3], 48);
-    midiout.note_on(2, voicing.notes[4], 32);
-}
-
-
-void stop_voicing(MidiOut& midiout, const Voicing& voicing)
-{
-    midiout.note_off(0, voicing.notes[0], 64);
-    midiout.note_off(1, voicing.notes[1], 64);
-    midiout.note_off(1, voicing.notes[2], 64);
-    midiout.note_off(1, voicing.notes[3], 64);
-    midiout.note_off(2, voicing.notes[4], 64);
-}
-
 
 std::vector<Voicing> enumerate_voicings(const Chord& chord)
 {
@@ -347,6 +398,26 @@ int main(int argc, const char* argv[])
     for (int i=0;i<melody.size();i++)
         std::cout << (i&1 ? "\e[0m" : "\e[1m") << melody[i].get_name() << "\e[0m" << std::endl;
 
+
+    Sequencer seq;
+
+    for (int i=0;i<voiceleading.size();i++) {
+        print_voicing(voiceleading[i]);
+        
+        for (int j=0;j<5;j++)
+            seq.sequence_note(j, 2.0f*i, voiceleading[i].notes[j], 64);
+    }
+
+    for (int j=0;j<5;j++)
+        seq.sequence_pause(j, voiceleading.size()*2.0f);
+
+    const float melody_timing[4]={ 0.0f, 0.75f, 1.0f, 1.75f };
+    for (int i=0;i<melody.size();i++)
+        seq.sequence_note(5, (i&~3)*0.5f + melody_timing[i&3], melody[i], 96);
+    
+    seq.sequence_pause(5, melody.size()*0.5f);
+
+
     try {
         RtMidiOut rtmidiout;
 
@@ -377,20 +448,7 @@ int main(int argc, const char* argv[])
         midiout.program_change(2, 41);
         midiout.program_change(3, 72);
 
-        for (int i=0;i<melody.size();i++) {
-            if (!(i&3))
-                play_voicing(midiout, voiceleading[i/4]);
-
-            midiout.note_on(3, melody[i], 96);
-            usleep(500000);
-            midiout.note_off(3, melody[i], 96);
-
-            if ((i&3)==3)
-                stop_voicing(midiout, voiceleading[i/4]);
-        }
-
-        sleep(1);
-        stop_voicing(midiout, voiceleading[voiceleading.size()-1]);
+        seq.play(midiout);
     }
     catch (const RtMidiError& err) {
         err.printMessage();
