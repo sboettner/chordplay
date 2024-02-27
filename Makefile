@@ -1,4 +1,4 @@
-OBJS=chordplay.o chord.o chordparser.o note.o scale.o
+OBJS=chordplay.o chord.o chordparser.o note.o scale.o ensemble.o ensembleparser.o
 
 chordplay: $(OBJS)
 	g++ -o chordplay $(OBJS) -lpopt `pkg-config --libs rtmidi`

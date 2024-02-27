@@ -95,6 +95,8 @@ public:
         value=note.value + octave*12;
     }
 
+    explicit Note(const std::string&);
+
     operator NoteClass() const
     {
         return NoteClass(base, value%12);
@@ -113,6 +115,16 @@ public:
     bool operator<(const Note& rhs) const
     {
         return value<rhs.value;
+    }
+
+    bool operator>(const Note& rhs) const
+    {
+        return value>rhs.value;
+    }
+
+    bool operator<=(const Note& rhs) const
+    {
+        return value<=rhs.value;
     }
 
     bool operator>=(const Note& rhs) const

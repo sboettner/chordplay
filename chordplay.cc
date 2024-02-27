@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <fstream>
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
@@ -6,6 +7,7 @@
 #include <popt.h>
 #include <RtMidi.h>
 #include "chordparser.h"
+#include "ensembleparser.h"
 #include "scale.h"
 
 poptOption option_table[]={
@@ -114,84 +116,23 @@ void Sequencer::play(MidiOut& midiout)
             midiout.note_off(voicechannel[i], playing[i], 64);
 }
 
-struct Voicing {
-    Note notes[5];
-};
-
-
-void print_voicing(const Voicing& voicing)
+int compute_voice_leading_cost(const Ensemble::Voicing& v1, const Ensemble::Voicing& v2)
 {
-    const char* colorcodes[5]={ "\e[31;1m", "\e[32;1m", "\e[32;1m", "\e[32;1m", "\e[36;1m" };
+    const int n=v1.get_voice_count();
 
-    for (int i=0;i<5;i++)
-        std::cout << colorcodes[i] << voicing.notes[i].get_name() << '\t';
-
-    std::cout << "\e[0m" << std::endl;
-}
-
-std::vector<Voicing> enumerate_voicings(const Chord& chord)
-{
-    std::vector<Voicing> result;
-
-    std::vector<Note> noteset[5];
-
-    if (chord.bass)
-        noteset[0].emplace_back(chord.bass, 3);
-    else
-        noteset[0].emplace_back(chord.notes[0], 3);
-
-    for (int i=1;i<5;i++) {
-        for (int j=0;j<6;j++)
-            if (chord.notes[j])
-                for (int k=4;k<=7;k++)
-                    noteset[i].emplace_back(chord.notes[j], k);
-    }
-
-    int seq[5]={};
-
-    do {
-        Voicing voicing;
-        uint8_t havenotes=0;
-
-        for (int i=0;i<5;i++) {
-            voicing.notes[i]=noteset[i][seq[i]];
-
-            for (int j=0;j<6;j++)
-                if (chord.notes[j]==voicing.notes[i])
-                    havenotes|=1<<j;
-        }
-
-        bool monotonic=true;
-        for (int i=1;i<5;i++)
-            if (voicing.notes[i-1]>=voicing.notes[i])
-                monotonic=false;
-
-        if (monotonic && !(chord.required&~havenotes))
-            result.push_back(voicing);
-
-        for (int i=0;i<5;i++)       
-            if (++seq[i]<noteset[i].size()) break; else seq[i]=0;
-    } while (seq[0] | seq[1] | seq[2] | seq[3] | seq[4]);
-
-    return result;
-}
-
-
-int compute_voice_leading_cost(const Voicing& v1, const Voicing& v2)
-{
     int cost=0;
 
-    for (int i=0;i<5;i++) {
-        int v=v1.notes[i].get_midi_note() - v2.notes[i].get_midi_note();
+    for (int i=0;i<n;i++) {
+        int v=v1[i].get_midi_note() - v2[i].get_midi_note();
         cost+=v*v;
     }
 
-    for (int i=1;i<5;i++) {
+    for (int i=1;i<n;i++) {
         for (int j=0;j<i;j++) {
-            int v=v1.notes[i].get_midi_note() - v1.notes[j].get_midi_note();
+            int v=v1[i].get_midi_note() - v1[j].get_midi_note();
             if (v%12!=0 && v%12!=7) continue;
 
-            if (v2.notes[i].get_midi_note()==v2.notes[j].get_midi_note()+v)
+            if (v2[i].get_midi_note()==v2[j].get_midi_note()+v)
                 cost+=1000; // forbidden parallel
         }
     }
@@ -200,12 +141,12 @@ int compute_voice_leading_cost(const Voicing& v1, const Voicing& v2)
 }
 
 
-std::vector<Voicing> compute_voice_leading(const std::vector<Chord>& chords)
+std::vector<Ensemble::Voicing> compute_voice_leading(const Ensemble& ensemble, const std::vector<Chord>& chords)
 {
     struct pathnode_t {
-        Voicing voicing;
-        int     back;
-        int     cost;
+        Ensemble::Voicing   voicing;
+        int                 back;
+        int                 cost;
     };
 
     std::vector<std::vector<pathnode_t>> pathnodes;
@@ -213,8 +154,8 @@ std::vector<Voicing> compute_voice_leading(const std::vector<Chord>& chords)
     for (const Chord& ch: chords) {
         std::vector<pathnode_t> voicings;
 
-        for (const Voicing& v: enumerate_voicings(ch))
-            voicings.push_back(pathnode_t { v, -1, 0 });
+        for (Ensemble::Voicing& v: ensemble.enumerate_harmony_voicings(ch))
+            voicings.push_back(pathnode_t { std::move(v), -1, 0 });
 
         pathnodes.push_back(std::move(voicings));
     }
@@ -247,10 +188,10 @@ std::vector<Voicing> compute_voice_leading(const std::vector<Chord>& chords)
 
     int j=best;
 
-    std::vector<Voicing> result;
+    std::vector<Ensemble::Voicing> result;
 
     while (i>=0) {
-        result.push_back(pathnodes[i][j].voicing);
+        result.push_back(std::move(pathnodes[i][j].voicing));
         j=pathnodes[i--][j].back;
     }
 
@@ -384,13 +325,17 @@ int main(int argc, const char* argv[])
         return 1;
     }
 
-    const Chord& ch=chords[0];
-    Scale scale(ch);
 
-    std::vector<Voicing> voiceleading=compute_voice_leading(chords);
+    EnsembleParser parseensemble;
+    std::ifstream ensemblestream;
+    ensemblestream.open("ensembles/strings");
+    Ensemble ensemble=parseensemble(ensemblestream);
+
+
+    std::vector<Ensemble::Voicing> voiceleading=compute_voice_leading(ensemble, chords);
 
     for (auto& v: voiceleading)
-        print_voicing(v);
+        ensemble.print_harmony_voicing(v);
 
     std::vector<Note> melody=improvise_melody(chords);
     melody=improvise_passing_notes(melody, chords);
@@ -402,10 +347,10 @@ int main(int argc, const char* argv[])
     Sequencer seq;
 
     for (int i=0;i<voiceleading.size();i++) {
-        print_voicing(voiceleading[i]);
+        ensemble.print_harmony_voicing(voiceleading[i]);
         
-        for (int j=0;j<5;j++)
-            seq.sequence_note(j, 2.0f*i, voiceleading[i].notes[j], 64);
+        for (int j=0;j<voiceleading[i].get_voice_count();j++)
+            seq.sequence_note(j, 2.0f*i, voiceleading[i][j], 64);
     }
 
     for (int j=0;j<5;j++)

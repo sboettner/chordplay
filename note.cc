@@ -99,6 +99,17 @@ NoteClass NoteClass::operator+(const Interval& iv) const
 }
 
 
+Note::Note(const std::string& str)
+{
+    int len=str.length();
+
+    NoteClass nc(str.substr(0, len-1));
+
+    base=nc.base;
+    value=nc.value + stoi(str.substr(len-1))*12;
+}
+
+
 std::string Note::get_name() const
 {
     std::string name(1, notenames[(int8_t) base]);
