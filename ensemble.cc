@@ -40,15 +40,25 @@ Ensemble::Voicing& Ensemble::Voicing::operator=(Voicing&& other)
 }
 
 
-void Ensemble::add_harmony_voice(const Voice& v)
+void Ensemble::add_voice(const Voice& v)
 {
-    harmony_voices.push_back(v);
+    if (v.role==Voice::Role::Melody) {
+        melody_voices.push_back(v);
+        melody_voices.back().id=harmony_voices.size() + melody_voices.size() - 1;
+    }
+    else {
+        harmony_voices.push_back(v);
+        harmony_voices.back().id=harmony_voices.size() + melody_voices.size() - 1;
+    }
 }
 
 
 void Ensemble::init_midi_programs(MidiOut& midi) const
 {
     for (const Voice& v: harmony_voices)
+        midi.program_change(v.midi_channel, v.midi_program);
+
+    for (const Voice& v: melody_voices)
         midi.program_change(v.midi_channel, v.midi_program);
 }
 

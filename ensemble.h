@@ -24,6 +24,7 @@ public:
         Note    range_low;
         Note    range_high;
         int8_t  color;
+        int8_t  id;
     };
 
 
@@ -59,7 +60,7 @@ public:
     };
 
 
-    void add_harmony_voice(const Voice&);
+    void add_voice(const Voice&);
 
     const Voice& get_harmony_voice(int i) const
     {
@@ -71,6 +72,16 @@ public:
         return harmony_voices.size();
     }
 
+    const Voice& get_melody_voice(int i) const
+    {
+        return melody_voices[i];
+    }
+    
+    int get_melody_voice_count() const
+    {
+        return melody_voices.size();
+    }
+
     void init_midi_programs(MidiOut&) const;
 
     std::vector<Voicing> enumerate_harmony_voicings(const Chord&) const;
@@ -79,6 +90,7 @@ public:
 
 private:
     std::vector<Voice>  harmony_voices;
+    std::vector<Voice>  melody_voices;
 };
 
 #endif

@@ -249,17 +249,19 @@ int main(int argc, const char* argv[])
         ensemble.print_harmony_voicing(voiceleading[i]);
         
         for (int j=0;j<voiceleading[i].get_voice_count();j++)
-            seq.sequence_note(j, 2.0f*i, voiceleading[i][j], ensemble.get_harmony_voice(i).midi_velocity);
+            seq.sequence_note(ensemble.get_harmony_voice(j), 2.0f*i, voiceleading[i][j]);
     }
 
     for (int j=0;j<5;j++)
-        seq.sequence_pause(j, voiceleading.size()*2.0f);
+        seq.sequence_pause(ensemble.get_harmony_voice(j), voiceleading.size()*2.0f);
+
+    const auto& melody_voice=ensemble.get_melody_voice(0);
 
     const float melody_timing[4]={ 0.0f, 0.75f, 1.0f, 1.75f };
     for (int i=0;i<melody.size();i++)
-        seq.sequence_note(5, (i&~3)*0.5f + melody_timing[i&3], melody[i], 96);
+        seq.sequence_note(melody_voice, (i&~3)*0.5f + melody_timing[i&3], melody[i]);
     
-    seq.sequence_pause(5, melody.size()*0.5f);
+    seq.sequence_pause(melody_voice, melody.size()*0.5f);
 
 
     try {
@@ -289,7 +291,7 @@ int main(int argc, const char* argv[])
         MidiOut midiout(rtmidiout);
 
         ensemble.init_midi_programs(midiout);
-        
+
         seq.play(midiout);
     }
     catch (const RtMidiError& err) {

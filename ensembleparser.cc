@@ -75,7 +75,7 @@ Ensemble EnsembleParser::operator()(std::istream& istr) const
 
     std::string line;
     while (getline(istr, line))
-        ensemble.add_harmony_voice(parse_voice(line));
+        ensemble.add_voice(parse_voice(line));
 
     return ensemble;
 }
