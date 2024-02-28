@@ -12,6 +12,8 @@ struct EnsembleParser::Internal {
         "[[:space:]]+"
         "([[:digit:]]+)"    // MIDI program (instrument)
         "[[:space:]]+"
+        "([[:digit:]]+)"    // MIDI velocity
+        "[[:space:]]+"
         "([A-G][#b]?[0-9])" // low end
         "\\.\\.\\."
         "([A-G][#b]?[0-9])" // high end
@@ -58,9 +60,10 @@ Ensemble::Voice EnsembleParser::parse_voice(const std::string& line) const
     
     voice.midi_channel=stoi(result[2]);
     voice.midi_program=stoi(result[3]);
-    voice.range_low=Note(result[4]);
-    voice.range_high=Note(result[5]);
-    voice.color=stoi(result[6]);
+    voice.midi_velocity=stoi(result[4]);
+    voice.range_low=Note(result[5]);
+    voice.range_high=Note(result[6]);
+    voice.color=stoi(result[7]);
 
     return voice;
 }

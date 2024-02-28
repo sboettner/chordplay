@@ -1,6 +1,7 @@
 #include <iostream>
 #include "ensemble.h"
 #include "chord.h"
+#include "midi.h"
 
 
 Ensemble::Voicing::Voicing(int numvoices):numvoices(numvoices)
@@ -42,6 +43,13 @@ Ensemble::Voicing& Ensemble::Voicing::operator=(Voicing&& other)
 void Ensemble::add_harmony_voice(const Voice& v)
 {
     harmony_voices.push_back(v);
+}
+
+
+void Ensemble::init_midi_programs(MidiOut& midi) const
+{
+    for (const Voice& v: harmony_voices)
+        midi.program_change(v.midi_channel, v.midi_program);
 }
 
 

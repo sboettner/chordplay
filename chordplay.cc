@@ -1,120 +1,19 @@
 #include <algorithm>
 #include <fstream>
 #include <stdio.h>
-#include <unistd.h>
 #include <limits.h>
 #include <math.h>
 #include <popt.h>
-#include <RtMidi.h>
 #include "chordparser.h"
 #include "ensembleparser.h"
 #include "scale.h"
+#include "midi.h"
 
 poptOption option_table[]={
     POPT_AUTOHELP
     POPT_TABLEEND
 };
 
-
-class MidiOut {
-    RtMidiOut&  rtmidiout;
-
-public:
-    MidiOut(RtMidiOut& rtmidiout):rtmidiout(rtmidiout) {}
-
-    void note_off(int ch, int note, int vel)
-    {
-        const uint8_t msg[3]={ uint8_t(0x80|ch), uint8_t(note), uint8_t(vel) };
-        rtmidiout.sendMessage(msg, sizeof(msg));
-    }
-
-    void note_on(int ch, int note, int vel)
-    {
-        const uint8_t msg[3]={ uint8_t(0x90|ch), uint8_t(note), uint8_t(vel) };
-        rtmidiout.sendMessage(msg, sizeof(msg));
-    }
-
-    void program_change(int ch, int prog)
-    {
-        const uint8_t msg[2]={ uint8_t(0xC0|ch), uint8_t(prog) };
-        rtmidiout.sendMessage(msg, sizeof(msg));
-    }
-};
-
-
-class Sequencer {
-    struct Event {
-        float   timestamp;
-        int8_t  voice;
-        int8_t  note;
-        int8_t  vel;
-    };
-
-    std::vector<Event>  events;
-
-    const int8_t voicechannel[8] { 0, 1, 1, 1, 2, 3, 4, 5 };
-
-public:
-    void sequence_note(int voice, float timestamp, const Note& note, int vel);
-    void sequence_pause(int voice, float timestamp);
-
-    void play(MidiOut&);
-};
-
-
-void Sequencer::sequence_note(int voice, float timestamp, const Note& note, int vel)
-{
-    Event event;
-
-    event.timestamp=timestamp;
-    event.voice=voice;
-    event.note=note.get_midi_note();
-    event.vel=vel;
-
-    events.push_back(event);
-}
-
-
-void Sequencer::sequence_pause(int voice, float timestamp)
-{
-    Event event;
-
-    event.timestamp=timestamp;
-    event.voice=voice;
-    event.note=-1;
-    event.vel=0;
-
-    events.push_back(event);
-}
-
-
-void Sequencer::play(MidiOut& midiout)
-{
-    std::sort(events.begin(), events.end(), [](const Event& lhs, const Event& rhs) { return lhs.timestamp<rhs.timestamp; });
-
-    int8_t playing[8] { -1, -1, -1, -1, -1, -1, -1, -1};
-    float curtime=0.0f;
-
-    for (auto& ev: events) {
-        float delay=ev.timestamp - curtime;
-        curtime=ev.timestamp;
-
-        if (delay>0)
-            usleep(lrintf(delay*800000));
-        
-        if (playing[ev.voice]>=0)
-            midiout.note_off(voicechannel[ev.voice], playing[ev.voice], 64);
-
-        if (ev.note>=0)
-            midiout.note_on(voicechannel[ev.voice], ev.note, ev.vel);
-
-        playing[ev.voice]=ev.note;
-    }
-
-    for (int i=0;i<8;i++)
-        if (playing[i]>=0)
-            midiout.note_off(voicechannel[i], playing[i], 64);
-}
 
 int compute_voice_leading_cost(const Ensemble::Voicing& v1, const Ensemble::Voicing& v2)
 {
@@ -350,7 +249,7 @@ int main(int argc, const char* argv[])
         ensemble.print_harmony_voicing(voiceleading[i]);
         
         for (int j=0;j<voiceleading[i].get_voice_count();j++)
-            seq.sequence_note(j, 2.0f*i, voiceleading[i][j], 64);
+            seq.sequence_note(j, 2.0f*i, voiceleading[i][j], ensemble.get_harmony_voice(i).midi_velocity);
     }
 
     for (int j=0;j<5;j++)
@@ -388,11 +287,9 @@ int main(int argc, const char* argv[])
         rtmidiout.openPort(midiport);
 
         MidiOut midiout(rtmidiout);
-        midiout.program_change(0, 43);
-        midiout.program_change(1, 42);
-        midiout.program_change(2, 41);
-        midiout.program_change(3, 72);
 
+        ensemble.init_midi_programs(midiout);
+        
         seq.play(midiout);
     }
     catch (const RtMidiError& err) {

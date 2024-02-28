@@ -5,6 +5,7 @@
 #include "note.h"
 
 class Chord;
+class MidiOut;
 
 
 class Ensemble {
@@ -19,6 +20,7 @@ public:
         Role    role;
         int8_t  midi_channel;
         int8_t  midi_program;
+        int8_t  midi_velocity;
         Note    range_low;
         Note    range_high;
         int8_t  color;
@@ -68,6 +70,8 @@ public:
     {
         return harmony_voices.size();
     }
+
+    void init_midi_programs(MidiOut&) const;
 
     std::vector<Voicing> enumerate_harmony_voicings(const Chord&) const;
 
