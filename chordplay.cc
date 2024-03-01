@@ -9,7 +9,10 @@
 #include "scale.h"
 #include "midi.h"
 
+int opt_play=0;
+
 poptOption option_table[]={
+    { NULL, 'p', POPT_ARG_NONE, &opt_play, 0, "Play using MIDI output", NULL },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -264,38 +267,40 @@ int main(int argc, const char* argv[])
     seq.sequence_pause(melody_voice, melody.size()*0.5f);
 
 
-    try {
-        RtMidiOut rtmidiout;
+    if (opt_play) {
+        try {
+            RtMidiOut rtmidiout;
 
-        const int numports=rtmidiout.getPortCount();
-        int midiport=-1;
+            const int numports=rtmidiout.getPortCount();
+            int midiport=-1;
 
-        for (int i=0;i<numports;i++) {
-            std::string portname=rtmidiout.getPortName(i).c_str();
-            std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
-            if (portname.find("synth")!=std::string::npos) {
-                midiport=i;
-                break;
+            for (int i=0;i<numports;i++) {
+                std::string portname=rtmidiout.getPortName(i).c_str();
+                std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
+                if (portname.find("synth")!=std::string::npos) {
+                    midiport=i;
+                    break;
+                }
             }
+
+            if (midiport<0) {
+                std::cerr << "Error: No MIDI synth found" << std::endl;
+                return 1;
+            }
+
+            std::cout << "Using MIDI port: " << rtmidiout.getPortName(midiport).c_str() << std::endl;
+
+            rtmidiout.openPort(midiport);
+
+            MidiOut midiout(rtmidiout);
+
+            ensemble.init_midi_programs(midiout);
+
+            seq.play(midiout);
         }
-
-        if (midiport<0) {
-            std::cerr << "Error: No MIDI synth found" << std::endl;
-            return 1;
+        catch (const RtMidiError& err) {
+            err.printMessage();
         }
-
-        std::cout << "Using MIDI port: " << rtmidiout.getPortName(midiport).c_str() << std::endl;
-
-        rtmidiout.openPort(midiport);
-
-        MidiOut midiout(rtmidiout);
-
-        ensemble.init_midi_programs(midiout);
-
-        seq.play(midiout);
-    }
-    catch (const RtMidiError& err) {
-        err.printMessage();
     }
 
     poptFreeContext(pctx);
