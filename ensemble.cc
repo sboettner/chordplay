@@ -1,6 +1,7 @@
 #include <iostream>
 #include "ensemble.h"
 #include "chord.h"
+#include "scale.h"
 #include "midi.h"
 
 
@@ -140,18 +141,20 @@ std::vector<Ensemble::Voicing> Ensemble::enumerate_harmony_voicings(const Chord&
 }
 
 
-void Ensemble::print_harmony_voicing(const Voicing& voicing) const
+void Ensemble::print_harmony_voicing(const Chord& chord, const Scale& scale, const Voicing& voicing) const
 {
     const char* colorcodes[8]={
-        "\e[30;1m",
-        "\e[34;1m",
-        "\e[32;1m",
-        "\e[36;1m",
-        "\e[31;1m",
-        "\e[35;1m",
-        "\e[33;1m",
-        "\e[37;1m"
+        "\e[90m",
+        "\e[94m",
+        "\e[92m",
+        "\e[96m",
+        "\e[91m",
+        "\e[95m",
+        "\e[93m",
+        "\e[97m"
     };
+
+    std::cout << "\e[95;1m" << chord.get_name() << '\t' << scale.get_name() << "\t\e[0m";
 
     for (int i=0;i<harmony_voices.size();i++)
         std::cout << colorcodes[harmony_voices[i].color] << voicing[i].get_name() << '\t';

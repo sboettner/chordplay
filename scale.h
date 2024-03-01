@@ -21,6 +21,7 @@ public:
 
     std::string get_name() const;
 
+    NoteClass operator[](int8_t) const;
     Note operator()(int8_t) const;
 
     int8_t to_scale(const Note&) const;

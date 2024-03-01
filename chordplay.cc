@@ -138,7 +138,7 @@ std::vector<Note> improvise_melody(const std::vector<Chord>& chords)
                 auto Pr=[](int d) { return expf(-0.75f*abs(d))*abs(d); };
 
                 float prob=Pr(note.get_midi_note() - melody[i-1].get_midi_note()) * Pr(note.get_midi_note() - melody[i+1].get_midi_note());
-                printf("%s %s %s: %f (%f)\n", melody[i-1].get_name().c_str(), note.get_name().c_str(), melody[i+1].get_name().c_str(), prob, cumul);
+                //printf("%s %s %s: %f (%f)\n", melody[i-1].get_name().c_str(), note.get_name().c_str(), melody[i+1].get_name().c_str(), prob, cumul);
 
                 NoteCandidate nc;
                 nc.note=note;
@@ -152,7 +152,7 @@ std::vector<Note> improvise_melody(const std::vector<Chord>& chords)
             int c=0;
             while (c+1<candidates.size() && candidates[c+1].cumul<=v) c++;
 
-            printf("total=%f  v=%f  c=%d\n", cumul, v, c);
+            //printf("total=%f  v=%f  c=%d\n", cumul, v, c);
 
             melody[i]=candidates[c].note;
         }
@@ -203,6 +203,72 @@ std::vector<Note> improvise_passing_notes(const std::vector<Note>& in_melody, co
 }
 
 
+std::vector<Scale> compute_scales_for_chords(const std::vector<Chord>& chords)
+{
+    const int n=chords.size();
+
+    struct node_t {
+        Scale   scale;
+        int     nonchordtones;
+        int     cost;
+        int     back;
+    };
+
+    node_t* nodes=new node_t[n*7];
+    for (int i=0;i<n;i++) {
+        for (int j=0;j<7;j++) {
+            nodes[i*7+j].scale=Scale(chords[i].notes[0], Scale::Mode(j));
+            nodes[i*7+j].nonchordtones=0;
+
+            for (int k=0;k<6 && chords[i].notes[k];k++)
+                if (!nodes[i*7+j].scale.contains(chords[i].notes[k]))
+                    nodes[i*7+j].nonchordtones++;
+        }
+    }
+
+    Scale alleged_tonic_scale(chords[0].notes[0], chords[0].quality==Chord::Quality::Minor ? Scale::Mode::Aeolian : Scale::Mode::Ionian);
+
+    for (int j=0;j<7;j++) {
+        nodes[j].cost=nodes[j].nonchordtones*8 + Scale::distance(alleged_tonic_scale, nodes[j].scale);
+        nodes[j].back=-1;
+    }
+
+    for (int i=1;i<n;i++) {
+        for (int j=0;j<7;j++) {
+            nodes[i*7+j].cost=INT_MAX;
+            nodes[i*7+j].back=0;
+
+            for (int k=0;k<7;k++) {
+                int cost=nodes[(i-1)*7+k].cost + nodes[i*7+j].nonchordtones*8;
+                int dist=Scale::distance(nodes[(i-1)*7+k].scale, nodes[i*7+j].scale);
+                if (dist)
+                    cost+=dist+1;
+                
+                if (cost<nodes[i*7+j].cost) {
+                    nodes[i*7+j].cost=cost;
+                    nodes[i*7+j].back=k;
+                }
+            }
+        }
+    }
+
+
+    int bestscale=0;
+    for (int j=1;j<7;j++)
+        if (nodes[(n-1)*7+j].cost < nodes[(n-1)*7+bestscale].cost)
+            bestscale=j;
+        
+    std::vector<Scale> scales;
+
+    for (int i=n-1;i>=0;bestscale=nodes[i--*7+bestscale].back)
+        scales.push_back(nodes[i*7+bestscale].scale);
+
+    std::reverse(scales.begin(), scales.end());
+
+    return scales;
+}
+
+
 int main(int argc, const char* argv[])
 {
     poptContext pctx=poptGetContext(NULL, argc, argv, option_table, 0);
@@ -236,9 +302,6 @@ int main(int argc, const char* argv[])
 
     std::vector<Ensemble::Voicing> voiceleading=compute_voice_leading(ensemble, chords);
 
-    for (auto& v: voiceleading)
-        ensemble.print_harmony_voicing(v);
-
     std::vector<Note> melody=improvise_melody(chords);
     melody=improvise_passing_notes(melody, chords);
 
@@ -246,10 +309,12 @@ int main(int argc, const char* argv[])
         std::cout << (i&1 ? "\e[0m" : "\e[1m") << melody[i].get_name() << "\e[0m" << std::endl;
 
 
+    auto scales=compute_scales_for_chords(chords);
+
     Sequencer seq;
 
     for (int i=0;i<voiceleading.size();i++) {
-        ensemble.print_harmony_voicing(voiceleading[i]);
+        ensemble.print_harmony_voicing(chords[i], scales[i], voiceleading[i]);
         
         for (int j=0;j<voiceleading[i].get_voice_count();j++)
             seq.sequence_note(ensemble.get_harmony_voice(j), 2.0f*i, voiceleading[i][j]);
@@ -265,7 +330,6 @@ int main(int argc, const char* argv[])
         seq.sequence_note(melody_voice, (i&~3)*0.5f + melody_timing[i&3], melody[i]);
     
     seq.sequence_pause(melody_voice, melody.size()*0.5f);
-
 
     if (opt_play) {
         try {

@@ -57,6 +57,15 @@ std::string Scale::get_name() const
 }
 
 
+NoteClass Scale::operator[](int8_t degree) const
+{
+    int8_t notename=int8_t(root.base) + degree;
+    if (notename>6) notename-=7;
+
+    return NoteClass(NoteName(notename), notes[degree]%12);
+}
+
+
 Note Scale::operator()(int8_t degree) const
 {
     int8_t octave=degree/7;

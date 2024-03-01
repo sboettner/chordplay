@@ -5,6 +5,7 @@
 #include "note.h"
 
 class Chord;
+class Scale;
 class MidiOut;
 
 
@@ -86,7 +87,7 @@ public:
 
     std::vector<Voicing> enumerate_harmony_voicings(const Chord&) const;
 
-    void print_harmony_voicing(const Voicing&) const;
+    void print_harmony_voicing(const Chord&, const Scale&, const Voicing&) const;
 
 private:
     std::vector<Voice>  harmony_voices;
