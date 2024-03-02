@@ -34,7 +34,11 @@ public:
         Note*   notes;
 
     public:
-        Voicing() = delete;
+        Voicing()
+        {
+            numvoices=0;
+            notes=nullptr;
+        }
         
         explicit Voicing(int numvoices);
         Voicing(const Voicing&) = delete;
