@@ -10,9 +10,11 @@
 #include "midi.h"
 
 int opt_play=0;
+int opt_improvise=0;
 
 poptOption option_table[]={
     { NULL, 'p', POPT_ARG_NONE, &opt_play, 0, "Play using MIDI output", NULL },
+    { NULL, 'i', POPT_ARG_NONE, &opt_improvise, 0, "Improvise a melody", NULL },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -306,13 +308,6 @@ int main(int argc, const char* argv[])
     compute_voice_leading(ensemble, bars);
     compute_scales_for_chords(bars);
 
-    std::vector<Note> melody=improvise_melody(bars);
-    melody=improvise_passing_notes(melody, bars);
-
-    for (int i=0;i<melody.size();i++)
-        std::cout << (i&1 ? "\e[0m" : "\e[1m") << melody[i].get_name() << "\e[0m" << std::endl;
-
-
     Sequencer seq;
 
     for (int i=0;i<bars.size();i++) {
@@ -325,13 +320,18 @@ int main(int argc, const char* argv[])
     for (int j=0;j<5;j++)
         seq.sequence_pause(ensemble.get_harmony_voice(j), bars.size()*2.0f);
 
-    const auto& melody_voice=ensemble.get_melody_voice(0);
+    if (opt_improvise) {
+        std::vector<Note> melody=improvise_melody(bars);
+        melody=improvise_passing_notes(melody, bars);
 
-    const float melody_timing[4]={ 0.0f, 0.75f, 1.0f, 1.75f };
-    for (int i=0;i<melody.size();i++)
-        seq.sequence_note(melody_voice, (i&~3)*0.5f + melody_timing[i&3], melody[i]);
-    
-    seq.sequence_pause(melody_voice, melody.size()*0.5f);
+        const auto& melody_voice=ensemble.get_melody_voice(0);
+
+        const float melody_timing[4]={ 0.0f, 0.75f, 1.0f, 1.75f };
+        for (int i=0;i<melody.size();i++)
+            seq.sequence_note(melody_voice, (i&~3)*0.5f + melody_timing[i&3], melody[i]);
+        
+        seq.sequence_pause(melody_voice, melody.size()*0.5f);
+    }
 
     if (opt_play) {
         try {
@@ -353,8 +353,6 @@ int main(int argc, const char* argv[])
                 std::cerr << "Error: No MIDI synth found" << std::endl;
                 return 1;
             }
-
-            std::cout << "Using MIDI port: " << rtmidiout.getPortName(midiport).c_str() << std::endl;
 
             rtmidiout.openPort(midiport);
 
