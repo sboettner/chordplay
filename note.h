@@ -34,6 +34,11 @@ public:
     {
         return semitones;
     }
+
+    bool operator==(const Interval& rhs) const
+    {
+        return notes==rhs.notes && semitones==rhs.semitones;
+    }
 };
 
 
@@ -65,6 +70,7 @@ public:
     std::string get_name() const;
 
     NoteClass operator+(const Interval&) const;
+    Interval operator-(const NoteClass&) const;
 
     bool operator==(NoteName name) const
     {

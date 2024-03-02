@@ -99,6 +99,18 @@ NoteClass NoteClass::operator+(const Interval& iv) const
 }
 
 
+Interval NoteClass::operator-(const NoteClass& rhs) const
+{
+    int steps=int8_t(base) - int8_t(rhs.base);
+    if (steps<0) steps+=7;
+
+    int semitones=value - rhs.value;
+    if (semitones<0) semitones+=12;
+
+    return Interval(steps, semitones);    
+}
+
+
 Note::Note(const std::string& str)
 {
     int len=str.length();

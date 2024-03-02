@@ -8,6 +8,19 @@ std::string Chord::get_name() const
     const static char* quality_names[]={ "", "m", "sus2", "sus4" };
     name+=quality_names[int(quality)];
 
+    if (notes[3]) {
+        Interval fourth=notes[3]-notes[0];
+        if (fourth==Interval(6, 10))
+            name+="7";
+        else if (quality==Quality::Major && fourth==Interval(6, 11))
+            name+="maj7";
+    }
+
+    if (bass) {
+        name+='/';
+        name+=bass.get_name();
+    }
+
     return name;
 }
 
