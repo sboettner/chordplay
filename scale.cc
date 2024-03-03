@@ -50,6 +50,22 @@ Scale::Scale(const NoteClass& root, Mode mode):root(root), mode(mode)
 }
 
 
+bool Scale::operator==(const Scale& rhs) const
+{
+    if (root!=rhs.root)
+        return false;
+    
+    if (mode!=rhs.mode)
+        return false;
+
+    for (int i=0;i<7;i++)
+        if (notes[i]!=rhs.notes[i])
+            return false;
+    
+    return true;
+}
+
+
 std::string Scale::get_name() const
 {
     const static char* modenames[]={ "ionian", "dorian", "phrygian", "lydian", "mixolydian", "aeolian", "locrian" };

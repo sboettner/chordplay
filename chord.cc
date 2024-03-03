@@ -1,6 +1,19 @@
 #include "chord.h"
 
 
+bool Chord::operator==(const Chord& other) const
+{
+    if (bass!=other.bass)
+        return false;
+
+    for (int i=0;i<6;i++)
+        if (notes[i]!=other.notes[i])
+            return false;
+
+    return true;
+}
+
+
 std::string Chord::get_name() const
 {
     std::string name=notes[0].get_name();

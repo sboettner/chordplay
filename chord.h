@@ -22,6 +22,12 @@ struct Chord {
     bool append(const NoteClass&);
 
     NoteClass operator[](NoteName) const;
+
+    bool operator==(const Chord&) const;
+    bool operator!=(const Chord& rhs) const
+    {
+        return !(*this==rhs);
+    }
 };
 
 

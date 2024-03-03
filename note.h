@@ -81,6 +81,11 @@ public:
     {
         return base==rhs.base && value==rhs.value;
     }
+
+    bool operator!=(const NoteClass& rhs) const
+    {
+        return !(*this==rhs);
+    }
 };
 
 

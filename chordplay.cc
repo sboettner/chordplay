@@ -237,7 +237,7 @@ void compute_scales_for_chords(std::vector<Bar>& bars)
     Scale alleged_tonic_scale(bars[0].chord.notes[0], bars[0].chord.quality==Chord::Quality::Minor ? Scale::Mode::Aeolian : Scale::Mode::Ionian);
 
     for (int j=0;j<7;j++) {
-        nodes[j].cost=nodes[j].nonchordtones*8 + Scale::distance(alleged_tonic_scale, nodes[j].scale);
+        nodes[j].cost=nodes[j].nonchordtones*16 + Scale::distance(alleged_tonic_scale, nodes[j].scale);
         nodes[j].back=-1;
     }
 
@@ -247,10 +247,20 @@ void compute_scales_for_chords(std::vector<Bar>& bars)
             nodes[i*7+j].back=0;
 
             for (int k=0;k<7;k++) {
-                int cost=nodes[(i-1)*7+k].cost + nodes[i*7+j].nonchordtones*8;
+                int cost=nodes[(i-1)*7+k].cost + nodes[i*7+j].nonchordtones*16;
                 int dist=Scale::distance(nodes[(i-1)*7+k].scale, nodes[i*7+j].scale);
                 if (dist)
                     cost+=dist+1;
+
+                // check if we already had the same chord earlier in the progression -- if so, try to use the same scale
+                for (int p=i-1, q=k; p>=0; q=nodes[p--*7+q].back) {
+                    if (bars[i].chord==bars[p].chord) {
+                        if (nodes[i*7+j].scale!=nodes[p*7+q].scale)
+                            cost+=3;
+                        
+                        break;
+                    }
+                }
                 
                 if (cost<nodes[i*7+j].cost) {
                     nodes[i*7+j].cost=cost;
@@ -262,10 +272,10 @@ void compute_scales_for_chords(std::vector<Bar>& bars)
 
 
     int bestscale=0;
-    for (int j=1;j<7;j++)
+    for (int j=0;j<7;j++)
         if (nodes[(n-1)*7+j].cost < nodes[(n-1)*7+bestscale].cost)
             bestscale=j;
-
+    
     for (int i=n-1;i>=0;bestscale=nodes[i--*7+bestscale].back)
         bars[i].scale=nodes[i*7+bestscale].scale;
 }

@@ -24,6 +24,12 @@ public:
     NoteClass operator[](int8_t) const;
     Note operator()(int8_t) const;
 
+    bool operator==(const Scale&) const;
+    bool operator!=(const Scale& rhs) const
+    {
+        return !(*this==rhs);
+    }
+
     int8_t to_scale(const Note&) const;
     bool contains(const NoteClass&) const;
 
