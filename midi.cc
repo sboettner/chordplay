@@ -11,6 +11,12 @@ void Sequencer::set_transposition(int t)
 }
 
 
+void Sequencer::set_bpm(int b)
+{
+    bpm=b;
+}
+
+
 void Sequencer::sequence_note(const Ensemble::Voice& voice, float timestamp, const Note& note)
 {
     Event event;
@@ -51,7 +57,7 @@ void Sequencer::play(MidiOut& midiout)
         float delay=ev.timestamp - curtime;
         curtime=ev.timestamp;
 
-        if (delay>0 && usleep(lrintf(delay*800000)) < 0)
+        if (delay>0 && usleep(lrintf(delay*60000000.0/bpm)) < 0)
             break;
         
         if (playing[ev.id]>=0)
