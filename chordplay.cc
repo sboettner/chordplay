@@ -12,10 +12,12 @@
 
 int opt_play=0;
 int opt_improvise=0;
+const char* opt_transpose_to=nullptr;
 
 poptOption option_table[]={
-    { NULL, 'p', POPT_ARG_NONE, &opt_play, 0, "Play using MIDI output", NULL },
-    { NULL, 'i', POPT_ARG_NONE, &opt_improvise, 0, "Improvise a melody", NULL },
+    { NULL, 'p', POPT_ARG_NONE,     &opt_play, 0, "Play using MIDI output", NULL },
+    { NULL, 'i', POPT_ARG_NONE,     &opt_improvise, 0, "Improvise a melody", NULL },
+    { NULL, 't', POPT_ARG_STRING,   &opt_transpose_to,  0, "Transpose such that the progression starts with a chord rooted on the given note", "NOTE" },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -316,6 +318,12 @@ int main(int argc, const char* argv[])
     if (bars.empty()) {
         printf("Error: no chords given\n");
         return 1;
+    }
+
+    if (opt_transpose_to) {
+        Interval trans=NoteClass(opt_transpose_to) - bars[0].chord.notes[0];
+        for (auto& b: bars)
+            b.chord+=trans;
     }
 
 

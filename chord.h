@@ -28,6 +28,8 @@ struct Chord {
     {
         return !(*this==rhs);
     }
+
+    Chord& operator+=(const Interval&);
 };
 
 

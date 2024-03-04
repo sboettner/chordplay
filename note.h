@@ -72,6 +72,8 @@ public:
     NoteClass operator+(const Interval&) const;
     Interval operator-(const NoteClass&) const;
 
+    NoteClass& operator+=(const Interval&);
+
     bool operator==(NoteName name) const
     {
         return base==name;

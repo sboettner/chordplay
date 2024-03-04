@@ -62,3 +62,15 @@ NoteClass Chord::operator[](NoteName name) const
 
     return NoteClass();
 }
+
+
+Chord& Chord::operator+=(const Interval& ival)
+{
+    if (bass)
+        bass+=ival;
+
+    for (int i=0;i<6 && notes[i];i++)
+        notes[i]+=ival;
+    
+    return *this;
+}

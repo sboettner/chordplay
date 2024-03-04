@@ -111,6 +111,13 @@ Interval NoteClass::operator-(const NoteClass& rhs) const
 }
 
 
+NoteClass& NoteClass::operator+=(const Interval& ival)
+{
+    *this=*this + ival;
+    return *this;
+}
+
+
 Note::Note(const std::string& str)
 {
     int len=str.length();
