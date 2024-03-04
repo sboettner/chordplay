@@ -5,6 +5,12 @@
 #include "note.h"
 
 
+void Sequencer::set_transposition(int t)
+{
+    transposition=t;
+}
+
+
 void Sequencer::sequence_note(const Ensemble::Voice& voice, float timestamp, const Note& note)
 {
     Event event;
@@ -12,7 +18,7 @@ void Sequencer::sequence_note(const Ensemble::Voice& voice, float timestamp, con
     event.timestamp=timestamp;
     event.id=voice.id;
     event.channel=voice.midi_channel;
-    event.note=note.get_midi_note();
+    event.note=note.get_midi_note() + transposition;
     event.vel=voice.midi_velocity;
 
     events.push_back(event);

@@ -42,8 +42,11 @@ class Sequencer {
     };
 
     std::vector<Event>  events;
+    int transposition=0;
 
 public:
+    void set_transposition(int);
+    
     void sequence_note(const Ensemble::Voice&, float timestamp, const Note& note);
     void sequence_pause(const Ensemble::Voice&, float timestamp);
 
