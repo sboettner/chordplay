@@ -48,6 +48,7 @@ public:
     void sequence_pause(const Ensemble::Voice&, float timestamp);
 
     void play(MidiOut&);
+    void stop();
 };
 
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <math.h>
+#include <signal.h>
 #include <popt.h>
 #include "chordparser.h"
 #include "ensembleparser.h"
@@ -281,6 +282,15 @@ void compute_scales_for_chords(std::vector<Bar>& bars)
 }
 
 
+Sequencer seq;
+
+void break_handler(int sig)
+{
+    signal(SIGINT, SIG_DFL);
+    seq.stop();
+}
+
+
 int main(int argc, const char* argv[])
 {
     poptContext pctx=poptGetContext(NULL, argc, argv, option_table, 0);
@@ -318,8 +328,6 @@ int main(int argc, const char* argv[])
     compute_voice_leading(ensemble, bars);
     compute_scales_for_chords(bars);
 
-    Sequencer seq;
-
     for (int i=0;i<bars.size();i++) {
         ensemble.print_harmony_voicing(bars[i].chord, bars[i].scale, bars[i].voicing);
         
@@ -344,6 +352,8 @@ int main(int argc, const char* argv[])
     }
 
     if (opt_play) {
+        signal(SIGINT, break_handler);
+
         try {
             RtMidiOut rtmidiout;
 

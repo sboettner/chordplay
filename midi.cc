@@ -45,8 +45,8 @@ void Sequencer::play(MidiOut& midiout)
         float delay=ev.timestamp - curtime;
         curtime=ev.timestamp;
 
-        if (delay>0)
-            usleep(lrintf(delay*800000));
+        if (delay>0 && usleep(lrintf(delay*800000)) < 0)
+            break;
         
         if (playing[ev.id]>=0)
             midiout.note_off(ev.channel, playing[ev.id], 64);
@@ -63,3 +63,8 @@ void Sequencer::play(MidiOut& midiout)
             midiout.note_off(channel[i], playing[i], 64);
 }
 
+
+void Sequencer::stop()
+{
+    // noop - currently we rely on usleep returning an error upon a signal
+}
