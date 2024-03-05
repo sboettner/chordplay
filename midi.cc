@@ -1,78 +1,92 @@
-#include <algorithm>
+#include <queue>
 #include <unistd.h>
 #include <math.h>
 #include "midi.h"
 #include "note.h"
 
 
-void Sequencer::set_transposition(int t)
+Sequencer::Track::Track(int8_t channel):channel(channel)
 {
-    transposition=t;
 }
 
 
-void Sequencer::set_bpm(int b)
+void Sequencer::Track::append_note(float timestamp, const Note& note, uint8_t vel)
 {
-    bpm=b;
+    events.push_back(Event { timestamp, note.get_midi_note(), vel });
 }
 
 
-void Sequencer::sequence_note(const Ensemble::Voice& voice, float timestamp, const Note& note)
+void Sequencer::Track::append_pause(float timestamp)
 {
-    Event event;
-
-    event.timestamp=timestamp;
-    event.id=voice.id;
-    event.channel=voice.midi_channel;
-    event.note=note.get_midi_note() + transposition;
-    event.vel=voice.midi_velocity;
-
-    events.push_back(event);
+    events.push_back(Event { timestamp, 0xff, 0 });
 }
 
 
-void Sequencer::sequence_pause(const Ensemble::Voice& voice, float timestamp)
+Sequencer::Sequencer(MidiOut& midiout, int bpm, int transposition):midiout(midiout), bpm(bpm), transposition(transposition)
 {
-    Event event;
-
-    event.timestamp=timestamp;
-    event.id=voice.id;
-    event.channel=voice.midi_channel;
-    event.note=-1;
-    event.vel=0;
-
-    events.push_back(event);
 }
 
 
-void Sequencer::play(MidiOut& midiout)
+Sequencer::Track* Sequencer::add_track(int8_t channel, int8_t program)
 {
-    std::sort(events.begin(), events.end(), [](const Event& lhs, const Event& rhs) { return lhs.timestamp<rhs.timestamp; });
+    midiout.program_change(channel, program);
 
-    int8_t playing[8] { -1, -1, -1, -1, -1, -1, -1, -1};
-    int8_t channel[8];  // FIXME: we shouldn't have to remember channels
+    Track* track=new Track(channel);
+    tracks.push_back(track);
+
+    return track;
+}
+
+
+void Sequencer::play()
+{
+    struct Event {
+        Track*  track;
+        int     index;
+    };
+
+    struct CompareEvent {
+        bool operator()(const Event& lhs, const Event& rhs) const
+        {
+            return lhs.track->events[lhs.index].timestamp > rhs.track->events[rhs.index].timestamp;
+        }
+    };
+
+    std::priority_queue<Event, std::vector<Event>, CompareEvent> queue;
+
+    for (Track* track: tracks)
+        if (!track->events.empty())
+            queue.push(Event { track, 0 });
+    
     float curtime=0.0f;
 
-    for (auto& ev: events) {
-        float delay=ev.timestamp - curtime;
-        curtime=ev.timestamp;
+    while (!queue.empty()) {
+        Event ev=queue.top();
+        queue.pop();
 
-        if (delay>0 && usleep(lrintf(delay*60000000.0/bpm)) < 0)
-            break;
-        
-        if (playing[ev.id]>=0)
-            midiout.note_off(ev.channel, playing[ev.id], 64);
+        const auto& trev=ev.track->events[ev.index];
 
-        if (ev.note>=0)
-            midiout.note_on(ev.channel, ev.note, ev.vel);
+        if (trev.timestamp>curtime && usleep(lrintf((trev.timestamp-curtime)*60000000.0f/bpm))<0) break;
 
-        playing[ev.id]=ev.note;
-        channel[ev.id]=ev.channel;
+        curtime=trev.timestamp;
+
+        if (ev.track->curnote>=0)
+            midiout.note_off(ev.track->channel, ev.track->curnote, 0);
+
+        if (trev.velocity>0) {
+            midiout.note_on(ev.track->channel, trev.note, trev.velocity);
+            ev.track->curnote=trev.note;
+        }
+        else
+            ev.track->curnote=-1;
+
+        if (++ev.index<ev.track->events.size())
+            queue.push(ev);
     }
 
-    for (int i=0;i<8;i++)
-        if (playing[i]>=0)
-            midiout.note_off(channel[i], playing[i], 64);
+    for (Track* track: tracks)
+        if (track->curnote>=0)
+            midiout.note_off(track->channel, track->curnote, 0);
 }
 
 

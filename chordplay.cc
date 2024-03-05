@@ -289,12 +289,14 @@ void compute_scales_for_chords(std::vector<Bar>& bars)
 }
 
 
-Sequencer seq;
+Sequencer* seq=nullptr;
 
 void break_handler(int sig)
 {
     signal(SIGINT, SIG_DFL);
-    seq.stop();
+
+    if (seq)
+        seq->stop();
 }
 
 
@@ -331,10 +333,6 @@ int main(int argc, const char* argv[])
             b.chord+=trans;
     }
 
-    seq.set_transposition(opt_transpose_by);
-    seq.set_bpm(opt_bpm);
-
-
     EnsembleParser parseensemble;
     std::ifstream ensemblestream;
     ensemblestream.open("ensembles/strings");
@@ -344,29 +342,9 @@ int main(int argc, const char* argv[])
     compute_voice_leading(ensemble, bars);
     compute_scales_for_chords(bars);
 
-    for (int i=0;i<bars.size();i++) {
+    for (int i=0;i<bars.size();i++)
         ensemble.print_harmony_voicing(bars[i].chord, bars[i].scale, bars[i].voicing);
-        
-        for (int j=0;j<bars[i].voicing.get_voice_count();j++)
-            seq.sequence_note(ensemble.get_harmony_voice(j), 2.0f*i, bars[i].voicing[j]);
-    }
-
-    for (int j=0;j<5;j++)
-        seq.sequence_pause(ensemble.get_harmony_voice(j), bars.size()*2.0f);
-
-    if (opt_improvise) {
-        std::vector<Note> melody=improvise_melody(bars);
-        melody=improvise_passing_notes(melody, bars);
-
-        const auto& melody_voice=ensemble.get_melody_voice(0);
-
-        const float melody_timing[4]={ 0.0f, 0.75f, 1.0f, 1.75f };
-        for (int i=0;i<melody.size();i++)
-            seq.sequence_note(melody_voice, (i&~3)*0.5f + melody_timing[i&3], melody[i]);
-        
-        seq.sequence_pause(melody_voice, melody.size()*0.5f);
-    }
-
+    
     if (opt_play) {
         signal(SIGINT, break_handler);
 
@@ -394,9 +372,36 @@ int main(int argc, const char* argv[])
 
             MidiOut midiout(rtmidiout);
 
+            seq=new Sequencer(midiout, opt_bpm, opt_transpose_by);
+
+            for (int i=0;i<ensemble.get_harmony_voice_count();i++) {
+                const auto& voice=ensemble.get_harmony_voice(i);
+
+                auto* track=seq->add_track(voice.midi_channel, voice.midi_program);
+
+                for (int j=0;j<bars.size();j++)
+                    track->append_note(4.0f*j, bars[j].voicing[i], voice.midi_velocity);
+
+                track->append_pause(bars.size()*4.0f);
+            }
+
+            if (opt_improvise) {
+                std::vector<Note> melody=improvise_melody(bars);
+                melody=improvise_passing_notes(melody, bars);
+
+                const auto& melody_voice=ensemble.get_melody_voice(0);
+                auto* melody_track=seq->add_track(melody_voice.midi_channel, melody_voice.midi_program);
+
+                const float melody_timing[4]={ 0.0f, 1.5f, 2.0f, 3.5f };
+                for (int i=0;i<melody.size();i++)
+                    melody_track->append_note((i&~3)*1.0f + melody_timing[i&3], melody[i], melody_voice.midi_velocity);
+                
+                melody_track->append_pause(melody.size()*1.0f);
+            }
+
             ensemble.init_midi_programs(midiout);
 
-            seq.play(midiout);
+            seq->play();
         }
         catch (const RtMidiError& err) {
             err.printMessage();

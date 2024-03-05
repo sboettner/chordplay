@@ -2,7 +2,6 @@
 #define INCLUDE_MIDI_H
 
 #include <RtMidi.h>
-#include "ensemble.h"
 
 class MidiOut {
     RtMidiOut&  rtmidiout;
@@ -33,27 +32,43 @@ public:
 class Note;
 
 class Sequencer {
-    struct Event {
-        float   timestamp;
-        int8_t  id;
+public:
+    class Track {
+        friend class Sequencer;
+
+        struct Event {
+            float   timestamp;
+            uint8_t note;
+            uint8_t velocity;
+        };
+
+        std::vector<Event> events;
+
         int8_t  channel;
-        int8_t  note;
-        int8_t  vel;
+        int8_t  curnote=-1;
+
+        Track(int8_t channel);
+
+    public:
+        void append_note(float timestamp, const Note& note, uint8_t vel);
+        void append_pause(float timestamp);
     };
 
-    std::vector<Event>  events;
+    Sequencer(MidiOut&, int bpm, int transposition);
+
+    Track* add_track(int8_t channel, int8_t program);
+
+    void play();
+    void stop();
+
+private:
+    MidiOut&    midiout;
+
+    std::vector<Track*> tracks;
+
     int transposition=0;
     int bpm=0;
 
-public:
-    void set_transposition(int);
-    void set_bpm(int);
-
-    void sequence_note(const Ensemble::Voice&, float timestamp, const Note& note);
-    void sequence_pause(const Ensemble::Voice&, float timestamp);
-
-    void play(MidiOut&);
-    void stop();
 };
 
 
