@@ -303,6 +303,7 @@ void break_handler(int sig)
 int main(int argc, const char* argv[])
 {
     poptContext pctx=poptGetContext(NULL, argc, argv, option_table, 0);
+    poptSetOtherOptionHelp(pctx, "<chords>...");
 
     while (poptGetNextOpt(pctx)>=0);
 
@@ -323,7 +324,8 @@ int main(int argc, const char* argv[])
     }
 
     if (bars.empty()) {
-        printf("Error: no chords given\n");
+        poptPrintUsage(pctx, stderr, 0);
+        std::cerr << "Error: no chords given" << std::endl;
         return 1;
     }
 
