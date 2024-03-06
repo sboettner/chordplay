@@ -11,6 +11,7 @@
 #include "midi.h"
 
 int opt_play=0;
+int opt_loop=0;
 int opt_improvise=0;
 int opt_bpm=120;
 int opt_midi_port=-1;
@@ -24,12 +25,13 @@ enum {
 
 poptOption option_table[]={
     { NULL, 'p', POPT_ARG_NONE,     &opt_play,          0, "Play using MIDI output", NULL },
+    { NULL, 'l', POPT_ARG_NONE,     &opt_loop,          0, "Loop endlessly", NULL },
     { NULL, 'i', POPT_ARG_NONE,     &opt_improvise,     0, "Improvise a melody", NULL },
     { NULL, 'B', POPT_ARG_INT,      &opt_bpm,           0,  "Set tempo (beats per minute)", "BPM" },
     { NULL, 't', POPT_ARG_STRING,   &opt_transpose_to,  0, "Transpose such that the progression starts with a chord rooted on the given note", "NOTE" },
     { NULL, 'T', POPT_ARG_INT,      &opt_transpose_by,  0, "Play the progression transposed by the given number of semitones", "SEMITONES" },
     { "midi-port", 0, POPT_ARG_INT, &opt_midi_port,     0, "Use the given MIDI out port", "PORT" },
-    { "list-midi", 0, POPT_ARG_NONE, nullptr, ARG_LIST_MIDI, "List available MIDI devices/ports" },
+    { "list-midi", 0, POPT_ARG_NONE, nullptr, ARG_LIST_MIDI, "List available MIDI devices/ports", NULL },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -431,7 +433,7 @@ int main(int argc, const char* argv[])
 
             ensemble.init_midi_programs(midiout);
 
-            seq->play();
+            seq->play(opt_loop);
         }
         catch (const RtMidiError& err) {
             err.printMessage();

@@ -38,7 +38,7 @@ Sequencer::Track* Sequencer::add_track(int8_t channel, int8_t program)
 }
 
 
-void Sequencer::play()
+void Sequencer::play(bool loop)
 {
     struct Event {
         Track*  track;
@@ -54,39 +54,43 @@ void Sequencer::play()
 
     std::priority_queue<Event, std::vector<Event>, CompareEvent> queue;
 
-    for (Track* track: tracks)
-        if (!track->events.empty())
-            queue.push(Event { track, 0 });
-    
-    float curtime=0.0f;
+    do {
+        for (Track* track: tracks)
+            if (!track->events.empty())
+                queue.push(Event { track, 0 });
+        
+        float curtime=0.0f;
 
-    while (!queue.empty()) {
-        Event ev=queue.top();
-        queue.pop();
+        while (!queue.empty()) {
+            Event ev=queue.top();
+            queue.pop();
 
-        const auto& trev=ev.track->events[ev.index];
+            const auto& trev=ev.track->events[ev.index];
 
-        if (trev.timestamp>curtime && usleep(lrintf((trev.timestamp-curtime)*60000000.0f/bpm))<0) break;
+            if (trev.timestamp>curtime && usleep(lrintf((trev.timestamp-curtime)*60000000.0f/bpm))<0) {
+                for (Track* track: tracks)
+                    if (track->curnote>=0)
+                        midiout.note_off(track->channel, track->curnote, 0);
 
-        curtime=trev.timestamp;
+                return;
+            }
 
-        if (ev.track->curnote>=0)
-            midiout.note_off(ev.track->channel, ev.track->curnote, 0);
+            curtime=trev.timestamp;
 
-        if (trev.velocity>0) {
-            midiout.note_on(ev.track->channel, trev.note, trev.velocity);
-            ev.track->curnote=trev.note;
+            if (ev.track->curnote>=0)
+                midiout.note_off(ev.track->channel, ev.track->curnote, 0);
+
+            if (trev.velocity>0) {
+                midiout.note_on(ev.track->channel, trev.note, trev.velocity);
+                ev.track->curnote=trev.note;
+            }
+            else
+                ev.track->curnote=-1;
+
+            if (++ev.index<ev.track->events.size())
+                queue.push(ev);
         }
-        else
-            ev.track->curnote=-1;
-
-        if (++ev.index<ev.track->events.size())
-            queue.push(ev);
-    }
-
-    for (Track* track: tracks)
-        if (track->curnote>=0)
-            midiout.note_off(track->channel, track->curnote, 0);
+    } while (loop);
 }
 
 

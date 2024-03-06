@@ -58,7 +58,7 @@ public:
 
     Track* add_track(int8_t channel, int8_t program);
 
-    void play();
+    void play(bool loop);
     void stop();
 
 private:
