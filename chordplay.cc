@@ -13,9 +13,14 @@
 int opt_play=0;
 int opt_improvise=0;
 int opt_bpm=120;
+int opt_midi_port=-1;
 
 const char* opt_transpose_to=nullptr;
 int opt_transpose_by=0;
+
+enum {
+    ARG_LIST_MIDI=1
+};
 
 poptOption option_table[]={
     { NULL, 'p', POPT_ARG_NONE,     &opt_play,          0, "Play using MIDI output", NULL },
@@ -23,6 +28,8 @@ poptOption option_table[]={
     { NULL, 'B', POPT_ARG_INT,      &opt_bpm,           0,  "Set tempo (beats per minute)", "BPM" },
     { NULL, 't', POPT_ARG_STRING,   &opt_transpose_to,  0, "Transpose such that the progression starts with a chord rooted on the given note", "NOTE" },
     { NULL, 'T', POPT_ARG_INT,      &opt_transpose_by,  0, "Play the progression transposed by the given number of semitones", "SEMITONES" },
+    { "midi-port", 0, POPT_ARG_INT, &opt_midi_port,     0, "Use the given MIDI out port", "PORT" },
+    { "list-midi", 0, POPT_ARG_NONE, nullptr, ARG_LIST_MIDI, "List available MIDI devices/ports" },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -300,12 +307,32 @@ void break_handler(int sig)
 }
 
 
+void list_midi_ports()
+{
+    try {
+        RtMidiOut rtmidiout;
+
+        for (int i=0;i<rtmidiout.getPortCount();i++)
+            std::cout << i << ": " << rtmidiout.getPortName(i) << std::endl;
+    }
+    catch (const RtMidiError& err) {
+        err.printMessage();
+    }
+}
+
+
 int main(int argc, const char* argv[])
 {
     poptContext pctx=poptGetContext(NULL, argc, argv, option_table, 0);
     poptSetOtherOptionHelp(pctx, "<chords>...");
 
-    while (poptGetNextOpt(pctx)>=0);
+    for (int arg=poptGetNextOpt(pctx); arg>=0; arg=poptGetNextOpt(pctx)) {
+        switch (arg) {
+        case ARG_LIST_MIDI:
+            list_midi_ports();
+            return 0;
+        }
+    }
 
     ChordParser parsechord;
     std::vector<Bar> bars;
@@ -353,24 +380,25 @@ int main(int argc, const char* argv[])
         try {
             RtMidiOut rtmidiout;
 
-            const int numports=rtmidiout.getPortCount();
-            int midiport=-1;
+            if (opt_midi_port<0) {
+                const int numports=rtmidiout.getPortCount();
 
-            for (int i=0;i<numports;i++) {
-                std::string portname=rtmidiout.getPortName(i).c_str();
-                std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
-                if (portname.find("synth")!=std::string::npos) {
-                    midiport=i;
-                    break;
+                for (int i=0;i<numports;i++) {
+                    std::string portname=rtmidiout.getPortName(i).c_str();
+                    std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
+                    if (portname.find("synth")!=std::string::npos) {
+                        opt_midi_port=i;
+                        break;
+                    }
+                }
+
+                if (opt_midi_port<0) {
+                    std::cerr << "Error: No MIDI synth found" << std::endl;
+                    return 1;
                 }
             }
 
-            if (midiport<0) {
-                std::cerr << "Error: No MIDI synth found" << std::endl;
-                return 1;
-            }
-
-            rtmidiout.openPort(midiport);
+            rtmidiout.openPort(opt_midi_port);
 
             MidiOut midiout(rtmidiout);
 
