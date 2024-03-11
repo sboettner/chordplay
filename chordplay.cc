@@ -12,6 +12,7 @@
 
 int opt_play=0;
 int opt_loop=0;
+int opt_embellish=0;
 int opt_improvise=0;
 int opt_bpm=120;
 int opt_midi_port=-1;
@@ -26,6 +27,7 @@ enum {
 poptOption option_table[]={
     { NULL, 'p', POPT_ARG_NONE,     &opt_play,          0, "Play using MIDI output", NULL },
     { NULL, 'l', POPT_ARG_NONE,     &opt_loop,          0, "Loop endlessly", NULL },
+    { NULL, 'e', POPT_ARG_NONE,     &opt_embellish,     0, "Apply embellishments to the harmony voices", NULL },
     { NULL, 'i', POPT_ARG_NONE,     &opt_improvise,     0, "Improvise a melody", NULL },
     { NULL, 'B', POPT_ARG_INT,      &opt_bpm,           0,  "Set tempo (beats per minute)", "BPM" },
     { NULL, 't', POPT_ARG_STRING,   &opt_transpose_to,  0, "Transpose such that the progression starts with a chord rooted on the given note", "NOTE" },
@@ -411,8 +413,19 @@ int main(int argc, const char* argv[])
 
                 auto* track=seq->add_track(voice.midi_channel, voice.midi_program);
 
-                for (int j=0;j<bars.size();j++)
+                for (int j=0;j<bars.size();j++) {
                     track->append_note(4.0f*j, bars[j].voicing[i], voice.midi_velocity);
+
+                    if (opt_embellish && voice.role==Ensemble::Voice::Role::Harmony && j+1<bars.size()) {
+                        int cur =bars[j].scale.to_scale(bars[j  ].voicing[i]);
+                        int next=bars[j].scale.to_scale(bars[j+1].voicing[i]);
+
+                        if (cur+1<next)
+                            track->append_note(4.0f*j+3.0f, bars[j].scale(next-1), voice.midi_velocity);
+                        if (cur-1>next)
+                            track->append_note(4.0f*j+3.0f, bars[j].scale(next+1), voice.midi_velocity);
+                    }
+                }
 
                 track->append_pause(bars.size()*4.0f);
             }
