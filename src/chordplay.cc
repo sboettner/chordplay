@@ -17,7 +17,7 @@ int opt_improvise=0;
 int opt_bpm=120;
 int opt_midi_port=-1;
 
-const char* opt_ensemble=nullptr;
+const char* opt_ensemble="strings";
 
 const char* opt_transpose_to=nullptr;
 int opt_transpose_by=0;
@@ -369,9 +369,14 @@ int main(int argc, const char* argv[])
             b.chord+=trans;
     }
 
-    EnsembleParser parseensemble;
     std::ifstream ensemblestream;
-    ensemblestream.open(opt_ensemble ? std::string("ensembles/")+opt_ensemble : std::string("ensembles/strings"));
+    ensemblestream.open(std::string("ensembles/")+opt_ensemble);
+    if (ensemblestream.fail()) {
+        std::cerr << "Error: could not read ensemble definition " << opt_ensemble << std::endl;
+        return 1;
+    }
+    
+    EnsembleParser parseensemble;
     Ensemble ensemble=parseensemble(ensemblestream);
 
 
