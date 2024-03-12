@@ -100,7 +100,11 @@ class Note {
     Note(NoteName base, int8_t value):base(base), value(value) {}
 
 public:
-    Note() {}
+    Note()
+    {
+        base=NoteName::Invalid;
+        value=-1;
+    }
 
     Note(const NoteClass& note, int8_t octave)
     {
@@ -113,6 +117,11 @@ public:
     operator NoteClass() const
     {
         return NoteClass(base, value%12);
+    }
+
+    operator bool() const
+    {
+        return base>NoteName::Invalid;
     }
 
     std::string get_name() const;

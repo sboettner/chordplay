@@ -128,7 +128,7 @@ void compute_voice_leading(const Ensemble& ensemble, std::vector<Bar>& bars)
 }
 
 
-std::vector<Note> improvise_melody(const std::vector<Bar>& bars)
+std::vector<Note> improvise_melody(const std::vector<Bar>& bars, const Ensemble::Voice& melvoice)
 {
     std::vector<Note> melody;
     std::vector<std::vector<Note>> noteset;
@@ -138,16 +138,24 @@ std::vector<Note> improvise_melody(const std::vector<Bar>& bars)
     for (int i=0;i<n;i++) {
         const Chord& chord=bars[i/2].chord;
 
-        melody.emplace_back(chord.notes[0], 5);
+        Note initial_note;
 
         std::vector<Note> notes;
         for (int j=0;j<6 && chord.notes[j];j++) {
-            notes.emplace_back(chord.notes[j], 4);
-            notes.emplace_back(chord.notes[j], 5);
-            notes.emplace_back(chord.notes[j], 6);
+            for (int k=0;k<10;k++) {
+                Note note(chord.notes[j], k);
+                if (note<melvoice.range_low) continue;
+                if (note>melvoice.range_high) break;
+
+                if (!j && !initial_note)
+                    initial_note=note;
+
+                notes.push_back(note);
+            }
         }
 
         noteset.push_back(std::move(notes));
+        melody.push_back(initial_note);
     }
 
     struct NoteCandidate {
@@ -438,8 +446,8 @@ int main(int argc, const char* argv[])
                 track->append_pause(bars.size()*4.0f);
             }
 
-            if (opt_improvise) {
-                std::vector<Note> melody=improvise_melody(bars);
+            if (opt_improvise && ensemble.get_melody_voice_count()>0) {
+                std::vector<Note> melody=improvise_melody(bars, ensemble.get_melody_voice(0));
                 melody=improvise_passing_notes(melody, bars);
 
                 const auto& melody_voice=ensemble.get_melody_voice(0);
