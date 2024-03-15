@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <fstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <math.h>
 #include <signal.h>
 #include <popt.h>
+#include "config.h"
 #include "chordparser.h"
 #include "ensembleparser.h"
 #include "scale.h"
@@ -23,7 +25,8 @@ const char* opt_transpose_to=nullptr;
 int opt_transpose_by=0;
 
 enum {
-    ARG_LIST_MIDI=1
+    ARG_LIST_MIDI=1,
+    ARG_SHOW_VERSION
 };
 
 poptOption option_table[]={
@@ -37,6 +40,7 @@ poptOption option_table[]={
     { NULL, 'T', POPT_ARG_INT,      &opt_transpose_by,  0, "Play the progression transposed by the given number of semitones", "SEMITONES" },
     { "midi-port", 0, POPT_ARG_INT, &opt_midi_port,     0, "Use the given MIDI out port", "PORT" },
     { "list-midi", 0, POPT_ARG_NONE, nullptr, ARG_LIST_MIDI, "List available MIDI devices/ports", NULL },
+    { "version", 0, POPT_ARG_NONE,   nullptr, ARG_SHOW_VERSION, "Display version number", NULL },
     POPT_AUTOHELP
     POPT_TABLEEND
 };
@@ -346,6 +350,9 @@ int main(int argc, const char* argv[])
         case ARG_LIST_MIDI:
             list_midi_ports();
             return 0;
+        case ARG_SHOW_VERSION:
+            std::cout << "This is Chordplay version " VERSION << std::endl;
+            return 0;
         }
     }
 
@@ -377,9 +384,22 @@ int main(int argc, const char* argv[])
             b.chord+=trans;
     }
 
+    std::string resource_path=".:~/.chordplay:/usr/local/share/chordplay:/usr/share/chordplay";
     std::ifstream ensemblestream;
-    ensemblestream.open(std::string("ensembles/")+opt_ensemble);
-    if (ensemblestream.fail()) {
+
+    for (size_t i=0;!ensemblestream.is_open();) {
+        size_t j=resource_path.find_first_of(':', i);
+        std::string path=resource_path.substr(i, j==std::string::npos ? j : j-i);
+        if (path.size()>0 && path[0]=='~')
+            path=std::string(getenv("HOME")) + path.substr(1);
+            
+        ensemblestream.open(path + "/ensembles/" + opt_ensemble);
+
+        if (j==std::string::npos) break;
+        i=j+1;
+    }
+
+    if (!ensemblestream.is_open()) {
         std::cerr << "Error: could not read ensemble definition " << opt_ensemble << std::endl;
         return 1;
     }
