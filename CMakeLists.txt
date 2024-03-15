@@ -28,4 +28,5 @@ install(DIRECTORY ensembles DESTINATION ${CMAKE_INSTALL_DATADIR}/chordplay)
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "stb")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpopt0, librtmidi4")
 include(CPack)
