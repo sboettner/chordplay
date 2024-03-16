@@ -4,7 +4,7 @@
 
 
 struct ChordParser::Internal {
-    std::regex  regex { "([A-G][#b]?)(?:(m)?(6|7|9)?|(maj7|sus2|sus4))((?:\\+[0-9]+)*)(?:/([A-G][#b]?))?" };
+    std::regex  regex { "([A-G][#b]?)(?:(m|dim|aug)?(6|7|9)?|(maj7|sus2|sus4))((?:\\+[0-9]+)*)(?:/([A-G][#b]?))?" };
 };
 
 
@@ -53,6 +53,16 @@ std::optional<Chord> ChordParser::operator()(const char* name) const
         chord.quality=Chord::Quality::Minor;
         chord.notes[1]=chord.notes[0] + Interval(2, 3);
         chord.notes[2]=chord.notes[0] + Interval(4, 7);
+    }
+    else if (result[2]=="dim") {
+        chord.quality=Chord::Quality::Diminished;
+        chord.notes[1]=chord.notes[0] + Interval(2, 3);
+        chord.notes[2]=chord.notes[0] + Interval(4, 6);
+    }
+    else if (result[2]=="aug") {
+        chord.quality=Chord::Quality::Augmented;
+        chord.notes[1]=chord.notes[0] + Interval(2, 4);
+        chord.notes[2]=chord.notes[0] + Interval(4, 8);
     }
     else {
         chord.quality=Chord::Quality::Major;

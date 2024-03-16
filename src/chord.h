@@ -7,6 +7,8 @@ struct Chord {
     enum class Quality:uint8_t {
         Major,
         Minor,
+        Diminished,
+        Augmented,
         Sus2,
         Sus4
     };
