@@ -9,6 +9,7 @@
 #include "config.h"
 #include "chordparser.h"
 #include "ensembleparser.h"
+#include "rhythmparser.h"
 #include "scale.h"
 #include "midi.h"
 
@@ -20,6 +21,7 @@ int opt_bpm=120;
 int opt_midi_port=-1;
 
 const char* opt_ensemble="strings";
+const char* opt_rhythm=nullptr;
 
 const char* opt_transpose_to=nullptr;
 int opt_transpose_by=0;
@@ -36,6 +38,7 @@ poptOption option_table[]={
     { NULL, 'i', POPT_ARG_NONE,     &opt_improvise,     0, "Improvise a melody", NULL },
     { NULL, 'B', POPT_ARG_INT,      &opt_bpm,           0, "Set tempo (beats per minute)", "BPM" },
     { NULL, 'E', POPT_ARG_STRING,   &opt_ensemble,      0, "Specify ensemble definition", "FILENAME" },
+    { NULL, 'R', POPT_ARG_STRING,   &opt_rhythm,        0, "Specify rhythmic accompaniment definition", "FILENAME" },
     { NULL, 't', POPT_ARG_STRING,   &opt_transpose_to,  0, "Transpose such that the progression starts with a chord rooted on the given note", "NOTE" },
     { NULL, 'T', POPT_ARG_INT,      &opt_transpose_by,  0, "Play the progression transposed by the given number of semitones", "SEMITONES" },
     { "midi-port", 0, POPT_ARG_INT, &opt_midi_port,     0, "Use the given MIDI out port", "PORT" },
@@ -406,6 +409,20 @@ int main(int argc, const char* argv[])
     
     EnsembleParser parseensemble;
     Ensemble ensemble=parseensemble(ensemblestream);
+
+
+    if (opt_rhythm) {
+        std::ifstream rhythmstream;
+        rhythmstream.open(std::string("rhythms/") + opt_rhythm);
+
+        if (!rhythmstream.good()) {
+            std::cerr << "Error: could not read rhythm definition " << opt_rhythm << std::endl;
+            return 1;
+        }
+
+        RhythmParser rhythmparser;
+        rhythmparser(rhythmstream);
+    }
 
 
     compute_voice_leading(ensemble, bars);
