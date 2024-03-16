@@ -426,7 +426,7 @@ int main(int argc, const char* argv[])
                 for (int i=0;i<numports;i++) {
                     std::string portname=rtmidiout.getPortName(i).c_str();
                     std::transform(portname.begin(), portname.end(), portname.begin(), tolower);
-                    if (portname.find("synth")!=std::string::npos) {
+                    if (portname.find("synth")!=std::string::npos || portname.find("timidity")!=std::string::npos) {
                         opt_midi_port=i;
                         break;
                     }
