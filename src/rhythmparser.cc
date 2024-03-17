@@ -46,6 +46,15 @@ Rhythm::Voice RhythmParser::parse_voice(const std::string& line) const
 
     Rhythm::Voice voice;
 
+    if (result[1]=="percussion")
+        voice.role=Rhythm::Voice::Role::Percussion;
+    else if (result[1]=="bass")
+        voice.role=Rhythm::Voice::Role::Bass;
+    else {
+        std::cerr << "Error parsing rhythm definition: Invalid voice role " << result[1] << std::endl;
+        exit(1);
+    }
+
     voice.midi_channel=std::stoi(result[2]);
     voice.midi_program=std::stoi(result[3]);
     voice.midi_note   =std::stoi(result[4]);

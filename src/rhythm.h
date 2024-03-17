@@ -7,6 +7,12 @@
 class Rhythm {
 public:
     struct Voice {
+        enum class Role:uint8_t {
+            Percussion,
+            Bass
+        };
+
+        Role    role;
         int8_t  midi_channel;
         int8_t  midi_program;
         int8_t  midi_note;
@@ -17,6 +23,16 @@ public:
     };
 
     void add_voice(const Voice&);
+
+    int get_voice_count() const
+    {
+        return voices.size();
+    }
+
+    const Voice& get_voice(int i) const
+    {
+        return voices[i];
+    }
 
 private:
     std::vector<Voice>  voices;

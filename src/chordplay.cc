@@ -411,6 +411,7 @@ int main(int argc, const char* argv[])
     Ensemble ensemble=parseensemble(ensemblestream);
 
 
+    Rhythm rhythm;
     if (opt_rhythm) {
         std::ifstream rhythmstream;
         rhythmstream.open(std::string("rhythms/") + opt_rhythm);
@@ -421,7 +422,7 @@ int main(int argc, const char* argv[])
         }
 
         RhythmParser rhythmparser;
-        rhythmparser(rhythmstream);
+        rhythm=rhythmparser(rhythmstream);
     }
 
 
@@ -481,6 +482,54 @@ int main(int argc, const char* argv[])
                 }
 
                 track->append_pause(bars.size()*4.0f);
+            }
+
+            if (opt_rhythm) {
+                for (int i=0;i<rhythm.get_voice_count();i++) {
+                    const auto& voice=rhythm.get_voice(i);
+                    const int m=voice.pattern.length();
+
+                    auto* track=seq->add_track(voice.midi_channel, voice.midi_program);
+
+                    if (voice.role==Rhythm::Voice::Role::Percussion) {
+                        for (int j=0;j<bars.size();j++) {
+                            for (int k=0;k<m;k++) {
+                                switch (voice.pattern[k]) {
+                                case 'X':
+                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_onbeat);
+                                    break;
+                                case 'x':
+                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_offbeat);
+                                    break;
+                                case '.':
+                                    track->append_pause(4.0f*j + 4.0f*k/m);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else {  // bass
+                        for (int j=0;j<bars.size();j++) {
+                            const Note bassnote=bars[j].voicing[0];
+
+                            for (int k=0;k<m;k++) {
+                                switch (voice.pattern[k]) {
+                                case 'X':
+                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_onbeat);
+                                    break;
+                                case 'x':
+                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_offbeat);
+                                    break;
+                                case '.':
+                                    track->append_pause(4.0f*j + 4.0f*k/m);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    track->append_pause(bars.size()*4.0f);
+                }
             }
 
             if (opt_improvise && ensemble.get_melody_voice_count()>0) {

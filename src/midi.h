@@ -51,6 +51,7 @@ public:
 
     public:
         void append_note(float timestamp, const Note& note, uint8_t vel);
+        void append_note(float timestamp, uint8_t note, uint8_t vel);
         void append_pause(float timestamp);
     };
 

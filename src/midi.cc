@@ -16,6 +16,12 @@ void Sequencer::Track::append_note(float timestamp, const Note& note, uint8_t ve
 }
 
 
+void Sequencer::Track::append_note(float timestamp, uint8_t note, uint8_t vel)
+{
+    events.push_back(Event { timestamp, note, vel });
+}
+
+
 void Sequencer::Track::append_pause(float timestamp)
 {
     events.push_back(Event { timestamp, 0xff, 0 });
