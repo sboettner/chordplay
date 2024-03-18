@@ -16,8 +16,8 @@ public:
         int8_t  midi_channel;
         int8_t  midi_program;
         int8_t  midi_note;
-        int8_t  midi_velocity_onbeat;
-        int8_t  midi_velocity_offbeat;
+        int8_t  midi_velocity_strong;
+        int8_t  midi_velocity_weak;
 
         std::string pattern;
     };

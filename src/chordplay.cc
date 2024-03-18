@@ -501,10 +501,10 @@ int main(int argc, const char* argv[])
                             for (int k=0;k<m;k++) {
                                 switch (voice.pattern[k]) {
                                 case 'X':
-                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_onbeat);
+                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_strong);
                                     break;
                                 case 'x':
-                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_offbeat);
+                                    track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_weak);
                                     break;
                                 case '.':
                                     track->append_pause(4.0f*j + 4.0f*k/m);
@@ -520,10 +520,10 @@ int main(int argc, const char* argv[])
                             for (int k=0;k<m;k++) {
                                 switch (voice.pattern[k]) {
                                 case 'X':
-                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_onbeat);
+                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_strong);
                                     break;
                                 case 'x':
-                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_offbeat);
+                                    track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_weak);
                                     break;
                                 case '.':
                                     track->append_pause(4.0f*j + 4.0f*k/m);

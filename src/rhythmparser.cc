@@ -58,8 +58,8 @@ Rhythm::Voice RhythmParser::parse_voice(const std::string& line) const
     voice.midi_channel=std::stoi(result[2]);
     voice.midi_program=std::stoi(result[3]);
     voice.midi_note   =std::stoi(result[4]);
-    voice.midi_velocity_onbeat =std::stoi(result[5]);
-    voice.midi_velocity_offbeat=std::stoi(result[6]);
+    voice.midi_velocity_strong=std::stoi(result[5]);
+    voice.midi_velocity_weak  =std::stoi(result[6]);
     voice.pattern=result[7];
 
     return voice;
