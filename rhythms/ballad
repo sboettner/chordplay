@@ -1,0 +1,4 @@
+percussion  9   1   36  64  48  X___............    ; bass drum
+percussion  9   1   38  64  48  ............X___    ; snare drum
+percussion  9   1   42  64  48  ....x_....x_..X_    ; closed hihat
+bass        10  39  0   96  64  X____.x.X______.    ; synth bass
