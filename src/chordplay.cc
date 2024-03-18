@@ -343,6 +343,27 @@ void list_midi_ports()
 }
 
 
+std::ifstream open_resource_file(const char* category, const char* filename)
+{
+    std::ifstream file;
+
+    std::string resource_paths=RESOURCE_PATHS;
+    for (size_t i=0;!file.is_open();) {
+        size_t j=resource_paths.find_first_of(':', i);
+        std::string path=resource_paths.substr(i, j==std::string::npos ? j : j-i);
+        if (path.size()>0 && path[0]=='~')
+            path=std::string(getenv("HOME")) + path.substr(1);
+            
+        file.open(path + '/' + category + '/' + filename);
+
+        if (j==std::string::npos) break;
+        i=j+1;
+    }
+
+    return file;
+}
+
+
 int main(int argc, const char* argv[])
 {
     poptContext pctx=poptGetContext(NULL, argc, argv, option_table, 0);
@@ -387,21 +408,7 @@ int main(int argc, const char* argv[])
             b.chord+=trans;
     }
 
-    std::string resource_path=".:~/.chordplay:/usr/local/share/chordplay:/usr/share/chordplay";
-    std::ifstream ensemblestream;
-
-    for (size_t i=0;!ensemblestream.is_open();) {
-        size_t j=resource_path.find_first_of(':', i);
-        std::string path=resource_path.substr(i, j==std::string::npos ? j : j-i);
-        if (path.size()>0 && path[0]=='~')
-            path=std::string(getenv("HOME")) + path.substr(1);
-            
-        ensemblestream.open(path + "/ensembles/" + opt_ensemble);
-
-        if (j==std::string::npos) break;
-        i=j+1;
-    }
-
+    std::ifstream ensemblestream=open_resource_file("ensembles", opt_ensemble);
     if (!ensemblestream.is_open()) {
         std::cerr << "Error: could not read ensemble definition " << opt_ensemble << std::endl;
         return 1;
@@ -413,10 +420,8 @@ int main(int argc, const char* argv[])
 
     Rhythm rhythm;
     if (opt_rhythm) {
-        std::ifstream rhythmstream;
-        rhythmstream.open(std::string("rhythms/") + opt_rhythm);
-
-        if (!rhythmstream.good()) {
+        std::ifstream rhythmstream=open_resource_file("rhythms", opt_rhythm);
+        if (!rhythmstream.is_open()) {
             std::cerr << "Error: could not read rhythm definition " << opt_rhythm << std::endl;
             return 1;
         }

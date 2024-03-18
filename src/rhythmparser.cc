@@ -40,7 +40,7 @@ Rhythm::Voice RhythmParser::parse_voice(const std::string& line) const
 {
     std::smatch result;
     if (!std::regex_match(line, result, internal->regex)) {
-        std::cerr << "Error parsing ensemble definition: Invalid voice definition\n" << line << std::endl;
+        std::cerr << "Error parsing rhythm definition: Invalid voice definition\n" << line << std::endl;
         exit(1);
     }
 
