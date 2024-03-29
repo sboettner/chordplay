@@ -5,20 +5,20 @@
 #include "note.h"
 
 
-Sequencer::Track::Track(int8_t channel):channel(channel)
+Sequencer::Track::Track(int8_t channel, int8_t transposition):channel(channel), transposition(transposition)
 {
 }
 
 
 void Sequencer::Track::append_note(float timestamp, const Note& note, uint8_t vel)
 {
-    events.push_back(Event { timestamp, note.get_midi_note(), vel });
+    events.push_back(Event { timestamp, uint8_t(note.get_midi_note()+transposition), vel });
 }
 
 
 void Sequencer::Track::append_note(float timestamp, uint8_t note, uint8_t vel)
 {
-    events.push_back(Event { timestamp, note, vel });
+    events.push_back(Event { timestamp, uint8_t(note+transposition), vel });
 }
 
 
@@ -37,7 +37,7 @@ Sequencer::Track* Sequencer::add_track(int8_t channel, int8_t program)
 {
     midiout.program_change(channel, program);
 
-    Track* track=new Track(channel);
+    Track* track=new Track(channel, channel==9 ? 0 : transposition);
     tracks.push_back(track);
 
     return track;

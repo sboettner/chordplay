@@ -46,8 +46,9 @@ public:
 
         int8_t  channel;
         int8_t  curnote=-1;
+        int8_t  transposition=0;
 
-        Track(int8_t channel);
+        Track(int8_t channel, int8_t transposition);
 
     public:
         void append_note(float timestamp, const Note& note, uint8_t vel);
