@@ -17,7 +17,9 @@ struct RhythmParser::Internal {
         "[[:space:]]+"
         "([[:digit:]]+)"    // MIDI velocity (off-beat)
         "[[:space:]]+"
-        "(\\.*(?:[Xx]_*\\.*)+)"
+        "(\\.*(?:[Xx]_*\\.*)+)"     // default pattern
+        "(?:[[:space:]]+"
+        "(\\.*(?:[Xx]_*\\.*)+))?"   // loop end pattern
         "[[:space:]]*"
         "(?:;.*)"           // comment
     };
@@ -61,6 +63,7 @@ Rhythm::Voice RhythmParser::parse_voice(const std::string& line) const
     voice.midi_velocity_strong=std::stoi(result[5]);
     voice.midi_velocity_weak  =std::stoi(result[6]);
     voice.pattern=result[7];
+    voice.loop_end_pattern=result[8];
 
     return voice;
 }

@@ -492,14 +492,17 @@ int main(int argc, const char* argv[])
             if (opt_rhythm) {
                 for (int i=0;i<rhythm.get_voice_count();i++) {
                     const auto& voice=rhythm.get_voice(i);
-                    const int m=voice.pattern.length();
 
                     auto* track=seq->add_track(voice.midi_channel, voice.midi_program);
 
-                    if (voice.role==Rhythm::Voice::Role::Percussion) {
-                        for (int j=0;j<bars.size();j++) {
+                    for (int j=0;j<bars.size();j++) {
+                        const auto& pattern=(!opt_loop || j+1<bars.size() || voice.loop_end_pattern.empty()) ? voice.pattern : voice.loop_end_pattern;
+
+                        const int m=pattern.length();
+
+                        if (voice.role==Rhythm::Voice::Role::Percussion) {
                             for (int k=0;k<m;k++) {
-                                switch (voice.pattern[k]) {
+                                switch (pattern[k]) {
                                 case 'X':
                                     track->append_note(4.0f*j + 4.0f*k/m, voice.midi_note, voice.midi_velocity_strong);
                                     break;
@@ -512,13 +515,11 @@ int main(int argc, const char* argv[])
                                 }
                             }
                         }
-                    }
-                    else {  // bass
-                        for (int j=0;j<bars.size();j++) {
+                        else {  // bass
                             const Note bassnote=bars[j].voicing[0];
 
                             for (int k=0;k<m;k++) {
-                                switch (voice.pattern[k]) {
+                                switch (pattern[k]) {
                                 case 'X':
                                     track->append_note(4.0f*j + 4.0f*k/m, bassnote, voice.midi_velocity_strong);
                                     break;

@@ -20,6 +20,7 @@ public:
         int8_t  midi_velocity_weak;
 
         std::string pattern;
+        std::string loop_end_pattern;
     };
 
     void add_voice(const Voice&);

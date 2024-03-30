@@ -1,4 +1,4 @@
-percussion  9   1   36  64  48  X___X___X___X___    ; bass drum
-percussion  9   1   38  64  48  ....X___....X___    ; snare drum
-percussion  9   1   42  64  48  ..X_..X_..X_..X_    ; closed hihat
-bass        10  39  0   64  48  X_x_X_x_X_x_X_x_    ; synth bass
+percussion  9   1   36  64  48  X___X___X___X___    X___X___X___X_x_    ; bass drum
+percussion  9   1   38  64  48  ....X___....X___    ....X___x_x_X_xx    ; snare drum
+percussion  9   1   42  64  48  ..X_..X_..X_..X_    ..X_..X_x_X_x_X_    ; closed hihat
+bass        10  39  0   64  48  X_x_X_x_X_x_X_x_    X_x_X_x_X__X__x_    ; synth bass
