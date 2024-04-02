@@ -483,9 +483,9 @@ int main(int argc, const char* argv[])
                 for (int j=0;j<bars.size();j++) {
                     track->append_note(4.0f*j, bars[j].voicing[i], voice.midi_velocity);
 
-                    if (opt_embellish && voice.role==Ensemble::Voice::Role::Harmony && j+1<bars.size()) {
-                        int cur =bars[j].scale.to_scale(bars[j  ].voicing[i]);
-                        int next=bars[j].scale.to_scale(bars[j+1].voicing[i]);
+                    if (opt_embellish && voice.role==Ensemble::Voice::Role::Harmony && (opt_loop || j+1<bars.size())) {
+                        const int cur =bars[j].scale.to_scale(bars[j                        ].voicing[i]);
+                        const int next=bars[j].scale.to_scale(bars[j+1<bars.size() ? j+1 : 0].voicing[i]);
 
                         if (cur+1<next)
                             track->append_note(4.0f*j+3.0f, bars[j].scale(next-1), voice.midi_velocity);
