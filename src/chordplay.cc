@@ -107,6 +107,14 @@ void compute_voice_leading(const Ensemble& ensemble, std::vector<Bar>& bars)
             for (int k=0;k<pathnodes[i-1].size();k++) {
                 int cost=pathnodes[i-1][k].cost + compute_voice_leading_cost(pathnodes[i-1][k].voicing, pathnodes[i][j].voicing);
 
+                if (opt_loop && i+1==pathnodes.size()) {
+                    int i0=i-1, k0=k;
+                    while (i0>0)
+                        k0=pathnodes[i0--][k0].back;
+
+                    cost+=compute_voice_leading_cost(pathnodes[i][j].voicing, pathnodes[i0][k0].voicing);
+                }
+
                 if (cost<pathnodes[i][j].cost) {
                     pathnodes[i][j].cost=cost;
                     pathnodes[i][j].back=k;
